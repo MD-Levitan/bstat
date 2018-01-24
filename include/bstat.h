@@ -11,8 +11,6 @@
 extern "C"{
 #endif
 
-#define log2(x) x
-#define exp2(x) x
 
 
 #define SUCCESS         0

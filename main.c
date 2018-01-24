@@ -10,11 +10,15 @@ int main() {
     init_hmm_model(&model, 2, 2);
     init_hmm_model(&model1, 2, 2);
     generate_random_hmm_model(&model);
-    init_hmm_seq(&seq, 100, &model);
+    generate_random_hmm_model(&model1);
+
+    init_hmm_seq(&seq, 1000, &model);
     //generate_random_hmm_seq(&seq, 2);
     generate_hmm_seq(&seq, &model);
 
-    //estimation_model(&seq, &model1, 0.0001);
+    int start_time = clock();
+    estimation_model(&seq, &model1, 0.000000001);
+    printf("Time: %f \n", (clock() - (double)start_time) / CLOCKS_PER_SEC);
 
     printf("Pi:  ");
     for (int j = 0; j < model.N; ++j) {
@@ -65,9 +69,6 @@ int main() {
         printf("\n\t");
     }
 
-    double ***ksiset;
-    init_ksiset(&ksiset, &seq, &model);
-    ksiset[0][0][0] = 1;
 
     free_hmm_seq(&seq);
     free_hmm_model(&model);

@@ -1,6 +1,6 @@
 cmake_minimum_required(VERSION 3.9)
 project(bstat C)
-#set(GCC_COVERAGE_LINK_FLAGS "-lm")
+set(GCC_COVERAGE_LINK_FLAGS "-lm")
 set(CMAKE_C_STANDARD 11)
 include_directories(include/)
 include_directories(src/)

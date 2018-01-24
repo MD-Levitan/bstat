@@ -30,6 +30,7 @@ typedef struct sequence_hmm_s{
 
 void init_hmm_model(hmm_model *ctx, byte n, byte m);
 void init_hmm_seq(hmm_seq *ctx, qword t, hmm_model *ctx2);
+void copy_hmm_model(hmm_model *dist, hmm_model *src);
 void free_hmm_model(hmm_model *model);
 void free_hmm_seq(hmm_seq *seq);
 
@@ -46,7 +47,15 @@ byte generate_hmm_model(hmm_model *model, byte type);
 #define generate_random_hmm_model(model) generate_hmm_model(model, 0)
 #define generate_uniform_hmm_model(model) generate_hmm_model(model, 1)
 
+void init_set(double ***set, hmm_seq *seq, hmm_model *model);
+void init_set_v(double **set_p, hmm_seq *seq);
 void init_ksiset(double ****ksiset, hmm_seq *seq, hmm_model *model);
+void init_gammaset(double ***gammaset_p, hmm_seq *seq, hmm_model *model);
+
+void free_set_v(double *set);
+void free_set(double **set,  hmm_seq *seq);
+void free_ksiset(double ***ksiset, hmm_seq *seq, hmm_model *model);
+void free_gammaset(double **gammaset, hmm_seq *seq);
 
 /**
  *
