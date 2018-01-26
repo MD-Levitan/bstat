@@ -17,9 +17,21 @@ int main() {
     generate_hmm_seq(&seq, &model);
 
     int start_time = clock();
-    estimation_model(&seq, &model1, 0.000000001);
+    double average_std = 0;
+    int N = 100;
+    for (int k = 0; k < N; ++k) {
+        estimation_model(&seq, &model1, 0.0005);
+        double std_deviation = 0;
+        std_deviation += standart_deviation_matrix(model.P, model1.P, model.N, model.N);
+        std_deviation += standart_deviation_matrix(model.C, model1.C, model.N, model.M);
+        average_std += std_deviation;
+    }
+    average_std /= N;
     printf("Time: %f \n", (clock() - (double)start_time) / CLOCKS_PER_SEC);
-
+    
+    printf("Std.Dev.: %f \n", average_std);
+    
+    
     printf("Pi:  ");
     for (int j = 0; j < model.N; ++j) {
         printf("%lf ", model.Pi[j]);

@@ -2,6 +2,7 @@
 #define __BSTAT_HMM_H
 
 #include "bstat.h"
+#include "statistic.h"
 
 #ifdef __cplusplus
 extern "C"{
