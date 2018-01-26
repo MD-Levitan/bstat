@@ -31,7 +31,7 @@ void entropy_m(byte *src, qword len, byte mod){
 byte ch(double *arr, byte len){
     assert(_entropy != NULL);
 
-    double val = (double)_entropy() / INT8_MAX;
+    double val = (double)_entropy() / UINT8_MAX;
     double sum = 0;
     for (byte i = 0; i < len; ++i) {
         sum += arr[i];
