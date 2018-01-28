@@ -10,4 +10,4 @@ include_directories(src/)
 #add_subdirectory(src)
 set(CMAKE_EXE_LINKER_FLAGS "${CMAKE_EXE_LINKER_FLAGS} ${GCC_COVERAGE_LINK_FLAGS}")
 add_executable(bstat main.c include/bstat.h include/hmm.h include/statistic.h include/cmm.h
-                            src/cmm.c src/hmm.c src/util.c src/statistic.c include/cmms.h src/cmms.c)
+                            src/cmm.c src/hmm.c src/util.c src/statistic.c include/cmms.h src/cmms.c include/dcmm.h src/dcmm.c)
