@@ -1,0 +1,1 @@
+1. Sequence model has pointer to markov model. Maybe change pointer to copy of model. Then fix init, free.

@@ -48,9 +48,9 @@ byte generate_cmm_seq(cmm_seq *seq);
 byte generate_random_cmm_seq(cmm_seq *seq, byte m);
 
 
-byte MLE_algorithm(cmm_seq *seq, cmm_model *model);
-byte bootstrap(cmm_seq *seq, cmm_model *model, word repeats);
-byte smoothed_estimators(cmm_seq *seq, cmm_model *model, word repeats, double u);
+byte MLE_algorithm(cmm_seq *seq, cmm_model *model, double *n);
+byte bootstrap(cmm_seq *seq, cmm_model *model, word repeats, double *n);
+byte smoothed_estimators(cmm_seq *seq, cmm_model *model, word repeats, double u, double *n);
 
 
 #ifdef __cplusplus

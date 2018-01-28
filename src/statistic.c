@@ -61,10 +61,10 @@ byte statistic_likelihood(hmm_seq *seq, hmm_model *estimation_hmm, hmm_model *pr
     byte need_free = 0;
     if(prediction_hmm == NULL){
         need_free = 1;
-        hmm_model *model = (hmm_model*) malloc(sizeof(hmm_model));
-        init_hmm_model(model, estimation_hmm->N, estimation_hmm->M);
-        generate_uniform_hmm_model(model);
-        prediction_hmm = model;
+        hmm_model model;
+        init_hmm_model(&model, estimation_hmm->N, estimation_hmm->M);
+        generate_uniform_hmm_model(&model);
+        prediction_hmm = &model;
     }
     double ** alphaset;
     double * alphaset_v;
@@ -87,7 +87,7 @@ byte statistic_likelihood(hmm_seq *seq, hmm_model *estimation_hmm, hmm_model *pr
     *stat = -2 * (pred_likehood - est_likehood);
     
     if(need_free)
-        free_hmm_model(prediction_hmm);
+        prediction_hmm = NULL;
 
 //from scipy.stats import chi2
 //        level = chi2.isf(threshold, sequence.N * (sequence.N - 1) + sequence.N * (sequence.M - 1))
