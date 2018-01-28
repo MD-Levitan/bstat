@@ -22,18 +22,10 @@ typedef struct hmm_s{
     double **C;         /**< Transition matrix from hidden to visible states. */
 } hmm_model;
 
-typedef struct sequence_hmm_s{
-    hmm_model *model;   /**< HMM */
-    qword T;            /**< The length of sequence. */
-    byte  m;            /**< The size of alphabet of seq, if model == NULL. */
-    byte* array;        /**< The pointer to sequence. */
-} hmm_seq;
 
 void init_hmm_model(hmm_model *ctx, byte n, byte m);
-void init_hmm_seq(hmm_seq *ctx, qword t, hmm_model *ctx2);
 void copy_hmm_model(hmm_model *dist, hmm_model *src);
 void free_hmm_model(hmm_model *model);
-void free_hmm_seq(hmm_seq *seq);
 
 /**
  * @brief Generate params of HMM.
@@ -48,15 +40,15 @@ byte generate_hmm_model(hmm_model *model, byte type, uint32_t* param);
 #define generate_random_hmm_model(model) generate_hmm_model(model, 0, NULL)
 #define generate_uniform_hmm_model(model) generate_hmm_model(model, 1, NULL)
 
-void init_set(double ***set, hmm_seq *seq, hmm_model *model);
-void init_set_v(double **set_p, hmm_seq *seq);
-void init_ksiset(double ****ksiset, hmm_seq *seq, hmm_model *model);
-void init_gammaset(double ***gammaset_p, hmm_seq *seq, hmm_model *model);
+void init_set(double ***set, sequence *seq, hmm_model *model);
+void init_set_v(double **set_p, sequence *seq);
+void init_ksiset(double ****ksiset, sequence *seq, hmm_model *model);
+void init_gammaset(double ***gammaset_p, sequence *seq, hmm_model *model);
 
 void free_set_v(double *set);
-void free_set(double **set,  hmm_seq *seq);
-void free_ksiset(double ***ksiset, hmm_seq *seq, hmm_model *model);
-void free_gammaset(double **gammaset, hmm_seq *seq);
+void free_set(double **set,  sequence *seq);
+void free_ksiset(double ***ksiset, sequence *seq, hmm_model *model);
+void free_gammaset(double **gammaset, sequence *seq);
 
 /**
  *
@@ -67,21 +59,20 @@ void free_gammaset(double **gammaset, hmm_seq *seq);
  * @param type
  * @return
  */
-byte generate_hmm_seq(hmm_seq *seq, hmm_model *model);
-byte generate_random_hmm_seq(hmm_seq *seq, byte m);
+byte generate_hmm_sequence(sequence *seq, hmm_model *model);
 
 
 
-byte forward_algorithm(hmm_seq *seq, hmm_model *model, double **set, double *set_v);
-byte backward_algorithm(hmm_seq *seq, hmm_model *model, double **set, double *set_v);
-double estimation_sequence_forward(hmm_seq *seq, hmm_model *model, double **set, double *set_v);
-void double_probability_norm(hmm_seq *seq, hmm_model *model, double estimation_seq, double **alphaset,
+byte forward_algorithm(sequence *seq, hmm_model *model, double **set, double *set_v);
+byte backward_algorithm(sequence *seq, hmm_model *model, double **set, double *set_v);
+double estimation_sequence_forward(sequence *seq, hmm_model *model, double **set, double *set_v);
+void double_probability_norm(sequence *seq, hmm_model *model, double estimation_seq, double **alphaset,
                              double *alhaset_v, double **betaset, double *betaset_v, double  ***ksiset);
-void marginaol_probability_norm(hmm_seq *seq, hmm_model *model, double estimation_seq, double **alphaset,
+void marginaol_probability_norm(sequence *seq, hmm_model *model, double estimation_seq, double **alphaset,
                                 double *alhaset_v, double **betaset, double *betaset_v, double  **gammaset);
 
-void estimation_model(hmm_seq *seq, hmm_model *model, double eps, double *likehood);
-void estimation_model_gl(hmm_seq *seq, hmm_model *model, uint32_t iter, double eps, double *likehood); //search for global maximum of likehood.
+void estimation_model(sequence *seq, hmm_model *model, double eps, double *likehood);
+void estimation_model_gl(sequence *seq, hmm_model *model, uint32_t iter, double eps, double *likehood); //search for global maximum of likehood.
 
 #ifdef __cplusplus
 } /* extern "C" */

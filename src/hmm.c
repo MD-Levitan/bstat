@@ -18,18 +18,6 @@ void init_hmm_model(hmm_model *ctx, byte n, byte m){
     }
 }
 
-void init_hmm_seq(hmm_seq *ctx, qword t, hmm_model *ctx2){
-    if(!ctx)
-        return;
-
-    ctx->T = t;
-    _memcheck(ctx->array, ctx->T * sizeof(byte));
-    if(ctx2 != NULL) {
-        ctx->m = ctx2->M;
-        ctx->model = ctx2;
-    }
-}
-
 void copy_hmm_model(hmm_model *dist, hmm_model *src){
     if(!dist || !src || dist->M != src->M || dist->N != src->N)
         return;
@@ -67,14 +55,6 @@ void free_hmm_model(hmm_model *ctx){
 
     ctx->N = 0;
     ctx->M = 0;
-}
-
-void free_hmm_seq(hmm_seq *ctx){
-    if(!ctx)
-        return;
-
-    free(ctx->array);
-    ctx->T = 0;
 }
 
 byte generate_hmm_model(hmm_model *model,  uint8_t type, uint32_t* param){
@@ -233,24 +213,16 @@ byte generate_hmm_model(hmm_model *model,  uint8_t type, uint32_t* param){
     return SUCCESS;
 }
 
-byte generate_random_hmm_seq(hmm_seq *seq, byte m){
-    if(_entropy == NULL || seq == NULL)
-        return ERROR;
-
-    seq->m = m;
-    entropy_m(seq->array, seq->T, seq->m);
-}
-
-byte generate_hmm_seq(hmm_seq *seq,  hmm_model *model) {
+byte generate_hmm_sequence(sequence *seq,  hmm_model *model) {
     if(_entropy == NULL || seq == NULL || model == NULL)
         return ERROR;
 
-    byte hidden = ch(seq->model->Pi, seq->model->N);
-    byte visible = ch(seq->model->C[hidden], seq->model->M);
+    byte hidden = ch(model->Pi, model->N);
+    byte visible = ch(model->C[hidden], model->M);
     for (qword i = 0; i < seq->T; ++i) {
         seq->array[i] = visible;
-        hidden = ch(seq->model->P[hidden], seq->model->N);
-        visible = ch(seq->model->C[hidden], seq->model->M);
+        hidden = ch(model->P[hidden], model->N);
+        visible = ch(model->C[hidden], model->M);
     }
 }
 
@@ -264,7 +236,7 @@ byte generate_hmm_seq(hmm_seq *seq,  hmm_model *model) {
  * set_v = {alphaset_v, betaset_v};
  */
 
-void init_set(double ***set_p, hmm_seq *seq, hmm_model *model){
+void init_set(double ***set_p, sequence *seq, hmm_model *model){
     if(!seq || !model)
         return;
     double **set;
@@ -275,7 +247,7 @@ void init_set(double ***set_p, hmm_seq *seq, hmm_model *model){
     *set_p = set;
 }
 
-void free_set(double **set,  hmm_seq *seq) {
+void free_set(double **set,  sequence *seq) {
     if (!set || !seq)
         return;
 
@@ -285,7 +257,7 @@ void free_set(double **set,  hmm_seq *seq) {
     free(set);
 }
 
-void init_set_v(double **set_p, hmm_seq *seq) {
+void init_set_v(double **set_p, sequence *seq) {
     if (!seq)
         return;
     double *set;
@@ -299,7 +271,7 @@ void free_set_v(double *set){
     free(set);
 }
 
-void init_ksiset(double ****ksiset_p, hmm_seq *seq, hmm_model *model){
+void init_ksiset(double ****ksiset_p, sequence *seq, hmm_model *model){
     if(!seq || !model)
         return;
     double ***ksiset;
@@ -314,7 +286,7 @@ void init_ksiset(double ****ksiset_p, hmm_seq *seq, hmm_model *model){
     *ksiset_p = ksiset;
 }
 
-void free_ksiset(double ***ksiset, hmm_seq *seq, hmm_model *model) {
+void free_ksiset(double ***ksiset, sequence *seq, hmm_model *model) {
     if(!ksiset || !seq || !model)
         return;
 
@@ -327,7 +299,7 @@ void free_ksiset(double ***ksiset, hmm_seq *seq, hmm_model *model) {
     free(ksiset);
 }
 
-void init_gammaset(double ***gammaset_p, hmm_seq *seq, hmm_model *model) {
+void init_gammaset(double ***gammaset_p, sequence *seq, hmm_model *model) {
     if(!seq || !model)
         return;
     double **gammaset;
@@ -339,7 +311,7 @@ void init_gammaset(double ***gammaset_p, hmm_seq *seq, hmm_model *model) {
     *gammaset_p = gammaset;
 }
 
-void free_gammaset(double **gammaset, hmm_seq *seq){
+void free_gammaset(double **gammaset, sequence *seq){
     if(!gammaset || !seq)
         return;
     for (qword i = 0; i < seq->T; ++i)
@@ -348,7 +320,7 @@ void free_gammaset(double **gammaset, hmm_seq *seq){
 }
 //////////////////////////////////////////////////////////////////////
 //////////////////////////////////////////////////////////////////////
-byte forward_algorithm_(hmm_seq *seq, hmm_model *model, double **set) {
+byte forward_algorithm_(sequence *seq, hmm_model *model, double **set) {
     if(seq == NULL || model == NULL || seq->m != model->M)
         return ERROR;
     double **alpha_set = set;
@@ -370,7 +342,7 @@ byte forward_algorithm_(hmm_seq *seq, hmm_model *model, double **set) {
 
 }
 
-byte forward_algorithm(hmm_seq *seq, hmm_model *model, double **set, double *set_v){
+byte forward_algorithm(sequence *seq, hmm_model *model, double **set, double *set_v){
     if(seq == NULL || model == NULL || seq->m != model->M)
         return ERROR;
     double *alpha, alpha_v = 0;
@@ -421,7 +393,7 @@ byte forward_algorithm(hmm_seq *seq, hmm_model *model, double **set, double *set
     return SUCCESS;
 }
 
-byte backward_algorithm(hmm_seq *seq, hmm_model *model, double **set, double *set_v){
+byte backward_algorithm(sequence *seq, hmm_model *model, double **set, double *set_v){
     if(seq == NULL || model == NULL || seq->m != model->M)
         return ERROR;
     double beta_v = 1;
@@ -472,7 +444,7 @@ byte backward_algorithm(hmm_seq *seq, hmm_model *model, double **set, double *se
     return SUCCESS;
 }
 
-byte backward_algorithm_(hmm_seq *seq, hmm_model *model, double **set){
+byte backward_algorithm_(sequence *seq, hmm_model *model, double **set){
     if(seq == NULL || model == NULL || seq->m != model->M)
         return ERROR;
     double **beta_set = set;
@@ -504,7 +476,7 @@ byte backward_algorithm_(hmm_seq *seq, hmm_model *model, double **set){
     return SUCCESS;
 }
 
-double estimation_sequence_forward(hmm_seq *seq, hmm_model *model, double **set, double *set_v){
+double estimation_sequence_forward(sequence *seq, hmm_model *model, double **set, double *set_v){
     double est = 0;
     for (byte i = 0; i < model->N; ++i) {
         est += set[seq->T - 1][i];
@@ -516,7 +488,7 @@ double estimation_sequence_forward(hmm_seq *seq, hmm_model *model, double **set,
     return est;
 }
 
-double estimation_sequence_forward_(hmm_seq *seq, hmm_model *model, double **set){
+double estimation_sequence_forward_(sequence *seq, hmm_model *model, double **set){
     double est = 0;
     for (byte i = 0; i < model->N; ++i) {
         est += set[seq->T - 1][i];
@@ -524,7 +496,7 @@ double estimation_sequence_forward_(hmm_seq *seq, hmm_model *model, double **set
     return est;
 }
 
-double estimation_sequence_forward_backward(hmm_seq *seq, double *set_v, double **set){
+double estimation_sequence_forward_backward(sequence *seq, double *set_v, double **set){
     /*double est = 0;
     for (byte i = 0; i < seq->m; ++i) {
         est += set[seq->T - 1][i];
@@ -536,7 +508,7 @@ double estimation_sequence_forward_backward(hmm_seq *seq, double *set_v, double 
     return est;*/
 }
 
-void double_probability(hmm_seq *seq, hmm_model *model, double estimation_seq, double **alphaset, double *alhaset_v,
+void double_probability(sequence *seq, hmm_model *model, double estimation_seq, double **alphaset, double *alhaset_v,
                              double **betaset, double *betaset_v, double  ***ksiset) {
 
     for (qword t = 0; t < seq->T - 1; ++t) {
@@ -557,7 +529,7 @@ void double_probability(hmm_seq *seq, hmm_model *model, double estimation_seq, d
     }
 }
 
-void marginal_probability(hmm_seq *seq, hmm_model *model, double estimation_seq, double **alphaset, double *alhaset_v,
+void marginal_probability(sequence *seq, hmm_model *model, double estimation_seq, double **alphaset, double *alhaset_v,
                           double **betaset, double *betaset_v, double **gammaset){
     for(qword t = 0; t < seq->T - 1; ++t) {
         for(byte i = 0; i < model->N; ++i) {
@@ -578,7 +550,7 @@ void marginal_probability(hmm_seq *seq, hmm_model *model, double estimation_seq,
  * Need to repair pointer.
  * Try to add search of global maximum.
  */
-void estimation_model(hmm_seq *seq, hmm_model *model_i, double eps, double *likehood) {
+void estimation_model(sequence *seq, hmm_model *model_i, double eps, double *likehood) {
     
     ///Init block
     hmm_model model;
@@ -689,7 +661,7 @@ void estimation_model(hmm_seq *seq, hmm_model *model_i, double eps, double *like
     ////
 }
 
-void estimation_model_gl(hmm_seq *seq, hmm_model *model_i, uint32_t iter, double eps, double *likehood) {
+void estimation_model_gl(sequence *seq, hmm_model *model_i, uint32_t iter, double eps, double *likehood) {
     double current_est, best_est = current_est = 0;
     hmm_model model;
     init_hmm_model(&model, model_i->N, model_i->M);

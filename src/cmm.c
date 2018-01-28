@@ -17,16 +17,12 @@ void init_cmm_model(cmm_model *ctx, byte n){
         _memcheck(ctx->P[i], ctx->N * sizeof(double));
 }
 
-void init_cmm_seq(cmm_seq *ctx, qword t, cmm_model *ctx2){
+void init_sequence(sequence *ctx, qword t){
     if(!ctx)
         return;
 
     ctx->T = t;
     _memcheck(ctx->array, ctx->T * sizeof(byte));
-    if(ctx2 != NULL) {
-        ctx->model = ctx2;
-        ctx->m = ctx2->N;
-    }
 }
 
 void copy_cmm_model(cmm_model *dist, cmm_model *src){
@@ -57,7 +53,7 @@ void free_cmm_model(cmm_model *ctx){
     ctx->N = 0;
 }
 
-void free_cmm_seq(cmm_seq *ctx){
+void free_sequence(sequence *ctx){
     if(!ctx)
         return;
 
@@ -68,7 +64,7 @@ void free_cmm_seq(cmm_seq *ctx){
 /////////////////////////////////////////////////
 
 
-byte generate_random_cmm_seq(cmm_seq *seq, byte m){
+byte generate_random_sequence(sequence *seq, byte m){
     if(_entropy == NULL || seq == NULL)
         return ERROR;
 
@@ -76,14 +72,14 @@ byte generate_random_cmm_seq(cmm_seq *seq, byte m){
     entropy_m(seq->array, seq->T, seq->m);
 }
 
-byte generate_cmm_seq(cmm_seq *seq){
-    if(_entropy == NULL || seq == NULL || seq->model == NULL)
+byte generate_cmm_sequence(sequence *seq, cmm_model *model){
+    if(_entropy == NULL || seq == NULL || model == NULL)
         return ERROR;
 
-    byte visible = ch(seq->model->Pi, seq->model->N);
+    byte visible = ch(model->Pi, model->N);
     for (qword i = 0; i < seq->T; ++i) {
         seq->array[i] = visible;
-        visible = ch(seq->model->P[visible], seq->model->N);
+        visible = ch(model->P[visible], model->N);
     }
 }
 
@@ -132,7 +128,7 @@ byte generate_cmm_model(cmm_model *model, byte type){
     return SUCCESS;
 }
 
-byte MLE_algorithm(cmm_seq *seq, cmm_model *model, double *_n) {
+byte MLE_algorithm(sequence *seq, cmm_model *model, double *_n) {
     if (!model || !seq || (seq->m && seq->m != model->N))
         return ERROR;
 
@@ -151,7 +147,11 @@ byte MLE_algorithm(cmm_seq *seq, cmm_model *model, double *_n) {
     }
 
     for (qword t = 0; t < seq->T - 1; ++t) {
-        n[seq->array[t]]++;
+        if(seq->array[t] < model->N){
+            n[seq->array[t]]++;
+        }else{
+            return ERROR;
+        }
     }
 
     //calculate P
@@ -187,11 +187,11 @@ byte MLE_algorithm(cmm_seq *seq, cmm_model *model, double *_n) {
     return SUCCESS;
 }
 
-byte bootstrap(cmm_seq *seq, cmm_model *model, word repeats, double *_n){
+byte bootstrap(sequence *seq, cmm_model *model, word repeats, double *_n){
     if (!model || !seq || (seq->m && seq->m != model->N))
         return ERROR;
     cmm_model iter_model;
-    cmm_seq iter_seq;
+    sequence iter_seq;
     cmm_model average_model;
     cmm_model it_model;
     init_cmm_model(&iter_model, model->N);
@@ -202,13 +202,13 @@ byte bootstrap(cmm_seq *seq, cmm_model *model, word repeats, double *_n){
     _memcheck(n_average, model->N * sizeof(double));
 
 
-    MLE_algorithm(seq, &iter_model, n);
+    _check(MLE_algorithm(seq, &iter_model, n));
     memcpy(n_average, n, model->N * sizeof(double));
     copy_cmm_model(&average_model, &iter_model);
-    init_cmm_seq(&iter_seq, seq->T, &iter_model);
+    init_sequence(&iter_seq, seq->T);
     for (word it = 1; it < repeats; ++it) {
-        generate_cmm_seq(&iter_seq);
-        MLE_algorithm(&iter_seq, &it_model, n);
+        generate_cmm_sequence(&iter_seq, &iter_model);
+        _check(MLE_algorithm(seq, &iter_model, n));
         for(byte i = 0; i < model->N; ++i){
             n_average[i] += n[i];
         }
@@ -232,15 +232,15 @@ byte bootstrap(cmm_seq *seq, cmm_model *model, word repeats, double *_n){
     free_cmm_model(&average_model);
     free_cmm_model(&iter_model);
     free_cmm_model(&it_model);
-    free_cmm_seq(&iter_seq);
+    free_sequence(&iter_seq);
     return SUCCESS;
 }
 
-byte smoothed_estimators(cmm_seq *seq, cmm_model *model, word repeats, double u, double *_n) {
+byte smoothed_estimators(sequence *seq, cmm_model *model, word repeats, double u, double *_n) {
     if (!model || !seq || (seq->m && seq->m != model->N))
         return ERROR;
     cmm_model iter_model;
-    cmm_seq iter_seq;
+    sequence iter_seq;
     cmm_model average_model;
     cmm_model it_model;
     init_cmm_model(&iter_model, model->N);
@@ -253,17 +253,17 @@ byte smoothed_estimators(cmm_seq *seq, cmm_model *model, word repeats, double u,
     _memcheck(n_average, model->N * sizeof(double));
 
 
-    MLE_algorithm(seq, &iter_model, n);
+    _check(MLE_algorithm(seq, &iter_model, n));
     copy_cmm_model(&average_model, &iter_model);
     for(byte i = 0; i < model->N; ++i){
         for(byte j = 0; j < model->N; ++j){
             iter_model.P[i][j] = (iter_model.P[i][j] + gamma) / omega;
         }
     }
-    init_cmm_seq(&iter_seq, seq->T, &iter_model);
+    init_sequence(&iter_seq, seq->T);
     for (word it = 1; it < repeats; ++it) {
-        generate_cmm_seq(&iter_seq);
-        MLE_algorithm(&iter_seq, &it_model, n);
+        generate_cmm_sequence(&iter_seq, &iter_model);
+        _check(MLE_algorithm(seq, &iter_model, n));
         for(byte i = 0; i < model->N; ++i){
             n_average[i] += n[i];
         }
@@ -288,6 +288,6 @@ byte smoothed_estimators(cmm_seq *seq, cmm_model *model, word repeats, double u,
     free_cmm_model(&average_model);
     free_cmm_model(&iter_model);
     free_cmm_model(&it_model);
-    free_cmm_seq(&iter_seq);
+    free_sequence(&iter_seq);
     return SUCCESS;
 }

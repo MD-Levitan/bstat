@@ -17,6 +17,7 @@ extern "C"{
 #define ERROR           1
 #define CRASH_ERROR     2
 
+#define _check(_) do{ if (_ != SUCCESS) return ERROR; } while(0)
 #define _memcheck(src, size) do { if (((src) = malloc(size)) == NULL) assert(!CRASH_ERROR); } while(0)
 #define __memcheck(src, num, size) do { if (((src) = calloc(num, size)) == NULL) assert(!CRASH_ERROR); } while(0)
 
@@ -27,7 +28,14 @@ typedef uint32_t      dword;
 typedef uint64_t      qword;
 
 
+typedef struct sequence_s{
+    qword T;            /**< The length of sequence. */
+    byte  m;            /**< The size of alphabet of seq, if model == NULL. */
+    byte* array;        /**< The pointer to sequence. */
+} sequence;
 
+void free_sequence(sequence *ctx);
+void init_sequence(sequence *ctx, qword t);
 
 
 extern byte    (*_entropy)(void);

@@ -18,18 +18,10 @@ typedef struct cmm_s{
     double **P;         /**< One-step transition matrix. */
 } cmm_model;
 
-typedef struct sequence_cmm_s{
-    cmm_model *model;   /**< CMM */
-    qword T;            /**< The length of sequence. */
-    byte  m;            /**< The size of alphabet of seq, if model == NULL. */
-    byte* array;        /**< The pointer to sequence. */
-} cmm_seq;
 
 void init_cmm_model(cmm_model *ctx, byte n);
-void init_cmm_seq(cmm_seq *ctx, qword t, cmm_model *ctx2);
 void copy_cmm_model(cmm_model *dist, cmm_model *src);
 void free_cmm_model(cmm_model *ctx);
-void free_cmm_seq(cmm_seq *ctx);
 
 /**
  * @brief Generate params of CMM.
@@ -44,13 +36,13 @@ byte generate_cmm_model(cmm_model *model, byte type);
 #define generate_random_cmm_model(model) generate_cmm_model(model, 0)
 #define generate_uniform_cmm_model(model) generate_cmm_model(model, 1)
 
-byte generate_cmm_seq(cmm_seq *seq);
-byte generate_random_cmm_seq(cmm_seq *seq, byte m);
+byte generate_cmm_sequence(sequence *seq, cmm_model *model);
+byte generate_random_sequence(sequence *seq, byte m);
 
 
-byte MLE_algorithm(cmm_seq *seq, cmm_model *model, double *n);
-byte bootstrap(cmm_seq *seq, cmm_model *model, word repeats, double *n);
-byte smoothed_estimators(cmm_seq *seq, cmm_model *model, word repeats, double u, double *n);
+byte MLE_algorithm(sequence *seq, cmm_model *model, double *n);
+byte bootstrap(sequence *seq, cmm_model *model, word repeats, double *n);
+byte smoothed_estimators(sequence *seq, cmm_model *model, word repeats, double u, double *n);
 
 
 #ifdef __cplusplus
