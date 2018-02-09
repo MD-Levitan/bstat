@@ -12,15 +12,21 @@ int main() {
     generate_random_hmm_model(&model);
     generate_random_hmm_model(&model1);
 
-    init_hmm_seq(&seq, 1000, &model);
+    init_hmm_seq(&seq, 100, &model);
     //generate_random_hmm_seq(&seq, 2);
     generate_hmm_seq(&seq, &model);
 
+    printf("\n Seq: ");
+    for (int j = 0; j < seq.T; ++j) {
+        printf("%d ", seq.array[j]);
+    }
+    printf("\n");
+
     int start_time = clock();
     double average_std = 0;
-    int N = 100;
+    int N = 10;
     for (int k = 0; k < N; ++k) {
-        estimation_model(&seq, &model1, 0.0005);
+        estimation_model(&seq, &model1, 0.005, NULL);
         double std_deviation = 0;
         std_deviation += standart_deviation_matrix(model.P, model1.P, model.N, model.N);
         std_deviation += standart_deviation_matrix(model.C, model1.C, model.N, model.M);
@@ -30,8 +36,8 @@ int main() {
     printf("Time: %f \n", (clock() - (double)start_time) / CLOCKS_PER_SEC);
     
     printf("Std.Dev.: %f \n", average_std);
-    
-    
+
+
     printf("Pi:  ");
     for (int j = 0; j < model.N; ++j) {
         printf("%lf ", model.Pi[j]);
@@ -53,10 +59,7 @@ int main() {
         printf("\n\t");
     }
 
-    printf("\n Seq: ");
-    for (int j = 0; j < seq.T; ++j) {
-        printf("%d ", seq.array[j]);
-    }
+
 
 
     printf("NEW MODEL\n");

@@ -77,14 +77,14 @@ void free_hmm_seq(hmm_seq *ctx){
     ctx->T = 0;
 }
 
-byte generate_hmm_model(hmm_model *model,  byte type){
+byte generate_hmm_model(hmm_model *model,  uint8_t type, uint32_t* param){
     if(_entropy == NULL || model == NULL)
         return ERROR;
 
-    if(type != 0 && type !=1)
+    if(type != 0 && type !=1 && type != 2)
         return ERROR;
 
-    if(!type) {
+    if(type == 0) {
         //Set PI
         {
             byte *arr;
@@ -120,7 +120,7 @@ byte generate_hmm_model(hmm_model *model,  byte type){
 
             free(arr);
         }
-    }else{
+    }else if(type == 1){
         //Set PI
         for (byte i = 0; i < model->N; ++i) {
             model->Pi[i] = (double) 1 / model->N;
@@ -130,6 +130,32 @@ byte generate_hmm_model(hmm_model *model,  byte type){
         for (byte i = 0; i < model->N; ++i) {
             for (byte j = 0; j < model->N; ++j)
                 model->P[i][j] = (double) 1 / model->N;
+        }
+
+        //set C
+        for (byte i = 0; i < model->N; ++i) {
+            for (byte j = 0; j < model->M; ++j)
+                model->C[i][j] = (double) 1 / model->M;
+        }
+    }else{
+        if(param == NULL)
+            return ERROR;
+        uint32_t num1 = param[0];
+        uint32_t num2 = param[1];
+        uint32_t index = param[2];
+        uint32_t index2 = index / num1;
+        uint32_t index1 = index % num1;
+        
+
+        //Set PI
+        for (byte i = 0; i < model->N; ++i) {
+            model->Pi[i] = (double) 1 / model->N;
+        }
+
+        //set P
+        for (byte i = 0; i < model->N; ++i) {
+            for (byte j = 0; j < model->N; ++j)
+                model->P[i][j] = (double) index1 / model->N;
         }
 
         //set C
@@ -373,7 +399,6 @@ double estimation_sequence_forward_backward(hmm_seq *seq, double *set_v, double 
 void double_probability(hmm_seq *seq, hmm_model *model, double estimation_seq, double **alphaset, double *alhaset_v,
                              double **betaset, double *betaset_v, double  ***ksiset) {
 
-    printf("\n");
     for (qword t = 0; t < seq->T - 1; ++t) {
         for (byte i = 0; i < model->N; ++i) {
             for (byte j = 0; j < model->N; ++j) {
@@ -413,12 +438,14 @@ void marginal_probability(hmm_seq *seq, hmm_model *model, double estimation_seq,
  * Need to repair pointer.
  * Try to add search of global maximum.
  */
-void estimation_model(hmm_seq *seq, hmm_model *model_i, double eps){
+void estimation_model(hmm_seq *seq, hmm_model *model_i, double eps, double *likehood){
 
     ///Init block
     hmm_model model;
-    double est;
+    double est, prev_est;
+    //double std_deviation = 0, prev_std_deviation = 1;
     double ** alphaset;
+    double ** alphaset_new;
     double ** betaset;
     double * alphaset_v;
     double * betaset_v;
@@ -428,26 +455,30 @@ void estimation_model(hmm_seq *seq, hmm_model *model_i, double eps){
     init_hmm_model(&model, model_i->N, model_i->M);
     generate_random_hmm_model(&model);
     init_set(&alphaset, seq, model_i);
+    init_set(&alphaset_new, seq, model_i);
     init_set(&betaset, seq, model_i);
     init_set_v(&alphaset_v, seq);
     init_set_v(&betaset_v, seq);
     init_ksiset(&ksiset, seq, model_i);
     init_gammaset(&gammaset, seq, model_i);
     /////
-    
+
+    /// First iteration
+    forward_algorithm(seq, &model, alphaset, alphaset_v);
+    backward_algorithm(seq, &model, betaset, betaset_v);
+    prev_est = estimation_sequence_forward(seq, &model, alphaset, alphaset_v);
+    ///
+
     while (1) {
         hmm_model new_model;
         init_hmm_model(&new_model, model.N, model.M);
-    
-        forward_algorithm(seq, &model, alphaset, alphaset_v);
-        backward_algorithm(seq, &model, betaset, betaset_v);
-        est = estimation_sequence_forward(seq, &model, alphaset, alphaset_v);
-        marginal_probability(seq, &model, est, alphaset, alphaset_v, betaset, betaset_v, gammaset);
-        double_probability(seq, &model, est, alphaset, alphaset_v, betaset, betaset_v, ksiset);
-    
+
+        marginal_probability(seq, &model, prev_est, alphaset, alphaset_v, betaset, betaset_v, gammaset);
+        double_probability(seq, &model, prev_est, alphaset, alphaset_v, betaset, betaset_v, ksiset);
+
         for (byte i = 0; i < model.N; ++i)
             new_model.Pi[i] = gammaset[0][i];
-    
+
         for (byte i = 0; i < model.N; ++i)
             for (byte j = 0; j < model.N; ++j) {
                 double sum1, sum2 = sum1 = 0;
@@ -457,7 +488,7 @@ void estimation_model(hmm_seq *seq, hmm_model *model_i, double eps){
                 }
                 new_model.P[i][j] = sum1 / sum2;
             }
-    
+
         for (byte i = 0; i < model.N; ++i)
             for (byte j = 0; j < seq->m; ++j) {
                 double sum1, sum2 = sum1 = 0;
@@ -468,41 +499,30 @@ void estimation_model(hmm_seq *seq, hmm_model *model_i, double eps){
                 }
                 new_model.C[i][j] = sum1 / sum2;
             }
-    
-        double std_deviation = 0;
-        std_deviation += standart_deviation_matrix(model.P, new_model.P, model.N, model.N);
-        std_deviation += standart_deviation_matrix(model.C, new_model.C, model.N, model.M);
-    
+
+        /// Calculate likehood for new_model
+        forward_algorithm(seq, &new_model, alphaset, alphaset_v);
+        backward_algorithm(seq, &new_model, betaset, betaset_v);
+        est = estimation_sequence_forward(seq, &new_model, alphaset, alphaset_v);
+        ///
+
+        // std_deviation += standart_deviation_matrix(model.P, new_model.P, model.N, model.N);
+        // std_deviation += standart_deviation_matrix(model.C, new_model.C, model.N, model.M);
+
         copy_hmm_model(&model, &new_model);
-//        printf("Pi:  ");
-//        for (int j = 0; j < model.N; ++j) {
-//            printf("%lf ", model.Pi[j]);
-//        }
-//
-//        printf("\nP:  ");
-//        for (byte i = 0; i < model.N; ++i) {
-//            for (int j = 0; j < model.N; ++j) {
-//                printf("%lf ", model.P[i][j]);
-//            }
-//            printf("\n\t");
-//        }
-//
-//        printf("\nC:  ");
-//        for (byte i = 0; i < model.N; ++i) {
-//            for (int j = 0; j < model.M; ++j) {
-//                printf("%lf ", model.C[i][j]);
-//            }
-//            printf("\n\t");
-//        }
-       free_hmm_model(&new_model);
-    
-        if (std_deviation <= eps)
+        free_hmm_model(&new_model);
+
+        if (est < prev_est)
+            fprintf(stderr, "%s. Likehood of prev. iter.(%f) < Likehood of new iter.(%f).\n",
+                    "Warning! Algorithm EM doesn't work properly!", prev_est, est);
+
+        if (fabs(prev_est - est) <= eps)
             break;
-        else
-            std_deviation =0;
+
+        prev_est = est;
     }
-
-
+    if(likehood != NULL)
+        *likehood = est;
     copy_hmm_model(model_i, &model);
     
     ///free block
@@ -514,4 +534,14 @@ void estimation_model(hmm_seq *seq, hmm_model *model_i, double eps){
     free_gammaset(gammaset, seq);
     free_hmm_model(&model);
     ////
+}
+
+void estimation_model_gl(hmm_seq *seq, hmm_model *model_i, uint32_t iter, double eps) {
+    double current_est, best_est = current_est = 0;
+    hmm_model model;
+    init_hmm_model(&model, model_i->N, model_i->M);
+
+
+    copy_hmm_model(model_i, &model);
+    free_hmm_model(&model);
 }
