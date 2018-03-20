@@ -18,7 +18,7 @@ extern "C"{
 #define CRASH_ERROR     2
 
 #define _memcheck(src, size) do { if (((src) = malloc(size)) == NULL) assert(!CRASH_ERROR); } while(0)
-
+#define __memcheck(src, num, size) do { if (((src) = calloc(num, size)) == NULL) assert(!CRASH_ERROR); } while(0)
 
 
 typedef unsigned char byte;

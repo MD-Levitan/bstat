@@ -81,7 +81,7 @@ byte generate_hmm_model(hmm_model *model,  uint8_t type, uint32_t* param){
     if(_entropy == NULL || model == NULL)
         return ERROR;
 
-    if(type != 0 && type !=1 && type != 2)
+    if(type != 0 && type !=1 && type != 2 )
         return ERROR;
 
     if(type == 0) {
@@ -140,28 +140,93 @@ byte generate_hmm_model(hmm_model *model,  uint8_t type, uint32_t* param){
     }else{
         if(param == NULL)
             return ERROR;
+        /*
+         *  index1 - index in surface of size(N * (N-1)), which represent matrix P.
+         *  index2 - index in surface of size(N * (M-1)), which represent matrix C.
+         *  num1 - number of pieces of surface(P).
+         *  num2 - number of pieces of surface(C).
+         *
+         *  1/6 * N * (N + 1) * (N + 2) = sum 1/2 * (n^2 + n) from 1 to N       --      (formula 1).
+         *
+         */
+
+
         uint32_t num1 = param[0];
         uint32_t num2 = param[1];
-        uint32_t index = param[2];
-        uint32_t index2 = index / num1;
-        uint32_t index1 = index % num1;
-        
 
+        double step1 = 1.0 / (num1 - 1);
+        double step2 = 1.0 / (num2 - 1);
+
+        uint64_t index1 = param[2];
+        uint64_t index2 = param[3];
+
+        //check if indexes are in correct range.
+        if(index1 > pow(num1, model->N * (model->N - 1)) || index2 > pow(num1, model->N * (model->M - 1))){
+            return ERROR;
+        }
+        
         //Set PI
         for (byte i = 0; i < model->N; ++i) {
             model->Pi[i] = (double) 1 / model->N;
         }
 
         //set P
-        for (byte i = 0; i < model->N; ++i) {
-            for (byte j = 0; j < model->N; ++j)
-                model->P[i][j] = (double) index1 / model->N;
+        {
+            //calculate using formula 1 for matrix P.
+            double max_size_double = 1;
+            for (uint8_t i = 1; i <= model->N - 1; ++i) {
+                max_size_double *= ((num1 - 1) + i) / i;
+            }
+            uint32_t max_size = (uint32_t) max_size_double;
+            uint32_t num_m1 = pow(num1, model->N - 1);
+        
+            for (byte i = 0; i < model->N; ++i) {
+                uint32_t v = (index1 % num_m1);
+                index1 /= num_m1;
+                double res = 1;
+                uint32_t current_size = 0;
+                for (byte j = 0; j < model->N - 1; ++j) {
+                    current_size += v % num1;
+                    if (current_size >= max_size)
+                        model->P[i][j] = 0;
+                    double value = step1 * (v % num1);
+                    res -= value;
+                    if (res < 0)
+                        return ERROR;
+                    model->P[i][j] = value;
+                    v /= num1;
+                }
+                model->P[i][model->N - 1] = res;
+            }
         }
 
         //set C
-        for (byte i = 0; i < model->N; ++i) {
-            for (byte j = 0; j < model->M; ++j)
-                model->C[i][j] = (double) 1 / model->M;
+        {
+            //calculate using formula 1 for matrix P.
+            double max_size_double = 1;
+            for (uint8_t i = 1; i <= model->M - 1; ++i) {
+                max_size_double *= (num2 + i) / i;
+            }
+            uint32_t max_size = (uint32_t) max_size_double;
+        
+            for (byte i = 0; i < model->N; ++i) {
+                uint32_t v = index2 % num1;
+                index2 /= num2;
+                double res = 1;
+                uint32_t current_size = 0;
+                for (byte j = 0; j < model->M - 1; ++j) {
+                    current_size += v % num2;
+                    if (current_size >= max_size)
+                        model->C[i][j] = 0;
+                    double value = step2 * (v % num2);
+                    res -= value;
+                    if (res < 0)
+                        return ERROR;
+                    model->C[i][j] = value;
+                    v /= num1;
+                }
+                model->C[i][model->M - 1] = res;
+            }
         }
     }
 
@@ -283,6 +348,27 @@ void free_gammaset(double **gammaset, hmm_seq *seq){
 }
 //////////////////////////////////////////////////////////////////////
 //////////////////////////////////////////////////////////////////////
+byte forward_algorithm_(hmm_seq *seq, hmm_model *model, double **set) {
+    if(seq == NULL || model == NULL || seq->m != model->M)
+        return ERROR;
+    double **alpha_set = set;
+
+    for (byte i = 0; i < model->N; ++i) {
+        alpha_set[0][i] = model->C[i][seq->array[0]] * model->Pi[i];
+    }
+
+    for (qword t = 1; t < seq->T; ++t) {
+        for (byte i = 0; i < model->N; ++i) {
+            double sum = 0;
+            for (byte j = 0; j < model->N; ++j) {
+                sum += model->P[j][i] * alpha_set[t - 1][j];
+            }
+            alpha_set[t][i] = model->C[i][seq->array[t]] * sum;
+        }
+    }
+    return SUCCESS;
+
+}
 
 byte forward_algorithm(hmm_seq *seq, hmm_model *model, double **set, double *set_v){
     if(seq == NULL || model == NULL || seq->m != model->M)
@@ -290,15 +376,23 @@ byte forward_algorithm(hmm_seq *seq, hmm_model *model, double **set, double *set
     double *alpha, alpha_v = 0;
     double **alpha_set = set, *alpha_v_set = set_v;
     _memcheck(alpha, model->N * sizeof(double));
+    
 
     for (byte i = 0; i < model->N; ++i) {
         alpha[i] = model->C[i][seq->array[0]] * model->Pi[i];
+        if(isnan(alpha[i])){
+            printf("adsd");
+        }
         alpha_v += alpha[i];
     }
     alpha_v /= model->N;
     alpha_v_set[0] = alpha_v;
+    alpha_v = !alpha_v ? 1 : alpha_v; //if alpha_v = 0;
     for (byte i = 0; i < model->N; ++i) {
         alpha[i] /= alpha_v;
+        if(isnan(alpha[i])){
+            printf("adsd");
+        }
         alpha_set[0][i] = alpha[i];
     }
 
@@ -314,9 +408,13 @@ byte forward_algorithm(hmm_seq *seq, hmm_model *model, double **set, double *set
         }
         alpha_v /= model->N;
         alpha_v_set[t] = alpha_v;
+        alpha_v = !alpha_v ? 1 : alpha_v; //if alpha_v = 0;
         for (byte i = 0; i < model->N; ++i) {
             alpha[i] /= alpha_v;
             alpha_set[t][i] = alpha[i];
+            if(isnan(alpha_set[t][i])){
+                printf("adsd");
+            }
         }
     }
     free(alpha);
@@ -344,8 +442,9 @@ byte backward_algorithm(hmm_seq *seq, hmm_model *model, double **set, double *se
             beta_set[t - 1][i] = sum;
             beta_v += beta_set[t - 1][i];
         }
-        beta_v /= model->N;
+        beta_v  /= model->N;
         beta_v_set[t - 1] = beta_v;
+        beta_v = !beta_v ? 1 : beta_v;
         for (byte i = 0; i < model->N; ++i) {
             beta_set[t - 1][i] /= beta_v;
         }
@@ -364,8 +463,41 @@ byte backward_algorithm(hmm_seq *seq, hmm_model *model, double **set, double *se
         }
         beta_v /= model->N;
         beta_v_set[0] = beta_v;
+        beta_v = !beta_v ? 1 : beta_v;
         for (byte i = 0; i < model->N; ++i) {
             beta_set[0][i] /= beta_v;
+        }
+    }
+
+    return SUCCESS;
+}
+
+byte backward_algorithm_(hmm_seq *seq, hmm_model *model, double **set){
+    if(seq == NULL || model == NULL || seq->m != model->M)
+        return ERROR;
+    double **beta_set = set;
+
+    for (byte i = 0; i < model->N; ++i)
+        beta_set[seq->T - 1][i] = 1;
+
+    for (qword t = seq->T - 1; t >= 2; --t) {
+        for (byte i = 0; i < model->N; ++i) {
+            double sum = 0;
+            for (byte j = 0; j < model->N; ++j) {
+                sum += model->P[i][j] * model->C[j][seq->array[t]] * beta_set[t][j];
+            }
+            beta_set[t - 1][i] = sum;
+        }
+    }
+
+    //t = 1
+    {
+        for (byte i = 0; i < model->N; ++i) {
+            double sum = 0;
+            for (byte j = 0; j < model->N; ++j) {
+                sum += model->P[i][j] * model->C[j][seq->array[1]] * beta_set[1][j];
+            }
+            beta_set[0][i] = sum;
         }
     }
 
@@ -380,6 +512,14 @@ double estimation_sequence_forward(hmm_seq *seq, hmm_model *model, double **set,
     est = log2(est);
     for (qword j = 0; j < seq->T; ++j) {
         est += log2(set_v[j]);
+    }
+    return est;
+}
+
+double estimation_sequence_forward_(hmm_seq *seq, hmm_model *model, double **set){
+    double est = 0;
+    for (byte i = 0; i < model->N; ++i) {
+        est += set[seq->T - 1][i];
     }
     return est;
 }
@@ -453,7 +593,8 @@ void estimation_model(hmm_seq *seq, hmm_model *model_i, double eps, double *like
     double **gammaset;
 
     init_hmm_model(&model, model_i->N, model_i->M);
-    generate_random_hmm_model(&model);
+    copy_hmm_model(&model, model_i);
+    //generate_random_hmm_model(&model);
     init_set(&alphaset, seq, model_i);
     init_set(&alphaset_new, seq, model_i);
     init_set(&betaset, seq, model_i);
@@ -467,6 +608,13 @@ void estimation_model(hmm_seq *seq, hmm_model *model_i, double eps, double *like
     forward_algorithm(seq, &model, alphaset, alphaset_v);
     backward_algorithm(seq, &model, betaset, betaset_v);
     prev_est = estimation_sequence_forward(seq, &model, alphaset, alphaset_v);
+    if(isnan(prev_est) || isinf(prev_est)){
+        if(likehood != NULL)
+            *likehood = prev_est;
+        copy_hmm_model(model_i, &model);
+        free_hmm_model(&model);
+        return;
+    }
     ///
 
     while (1) {
@@ -487,6 +635,8 @@ void estimation_model(hmm_seq *seq, hmm_model *model_i, double eps, double *like
                     sum2 += gammaset[t][i];
                 }
                 new_model.P[i][j] = sum1 / sum2;
+                if(isnan(new_model.P[i][j]))
+                    new_model.P[i][j] = 0;
             }
 
         for (byte i = 0; i < model.N; ++i)
@@ -498,6 +648,8 @@ void estimation_model(hmm_seq *seq, hmm_model *model_i, double eps, double *like
                     sum2 += gammaset[t][i];
                 }
                 new_model.C[i][j] = sum1 / sum2;
+                if(isnan(new_model.C[i][j]))
+                    new_model.C[i][j] = 0;
             }
 
         /// Calculate likehood for new_model
@@ -515,7 +667,11 @@ void estimation_model(hmm_seq *seq, hmm_model *model_i, double eps, double *like
         if (est < prev_est)
             fprintf(stderr, "%s. Likehood of prev. iter.(%f) < Likehood of new iter.(%f).\n",
                     "Warning! Algorithm EM doesn't work properly!", prev_est, est);
-
+        
+        if(isnan(prev_est) || isnan(est))
+        {
+            printf("dfsdf");
+        }
         if (fabs(prev_est - est) <= eps)
             break;
 
@@ -536,12 +692,57 @@ void estimation_model(hmm_seq *seq, hmm_model *model_i, double eps, double *like
     ////
 }
 
-void estimation_model_gl(hmm_seq *seq, hmm_model *model_i, uint32_t iter, double eps) {
+void estimation_model_gl(hmm_seq *seq, hmm_model *model_i, uint32_t iter, double eps, double *likehood) {
     double current_est, best_est = current_est = 0;
     hmm_model model;
     init_hmm_model(&model, model_i->N, model_i->M);
+    uint64_t parts1 = pow(iter, model_i->N * (model_i->N - 1));
+    uint64_t parts2 = pow(iter, model_i->N * (model_i->M - 1));
+    double est = log(0);
+    for (uint64_t i = 0; i < parts1; ++i) {
+        for (uint64_t j = 0; j < parts2; ++j) {
+            hmm_model model_iter;
+            init_hmm_model(&model_iter, model_i->N, model_i->M);
+            uint32_t params[4] = {iter, iter, i, j};
+            if(generate_hmm_model(&model_iter, 2, params) == ERROR)
+                continue;
 
-
+//            printf("NEW MODEL\n");
+//            printf("Pi:  ");
+//            for (int j = 0; j < model_iter.N; ++j) {
+//                printf("%lf ", model_iter.Pi[j]);
+//            }
+//
+//            printf("\nP:  ");
+//            for (byte i = 0; i < model_iter.N; ++i) {
+//                for (int j = 0; j < model_iter.N; ++j) {
+//                    printf("%lf ", model_iter.P[i][j]);
+//                }
+//                printf("\n\t");
+//            }
+//
+//            printf("\nC:  ");
+//            for (byte i = 0; i < model_iter.N; ++i) {
+//                for (int j = 0; j < model_iter.M; ++j) {
+//                    printf("%lf ", model_iter.C[i][j]);
+//                }
+//                printf("\n\t");
+//            }
+    
+    
+            double current_est = 0;
+            estimation_model(seq, &model_iter, 0.01, &current_est);
+           // printf("estimation = %f", current_est);
+            if(est < current_est){
+                copy_hmm_model(&model, &model_iter);
+                est = current_est;
+            }
+         //   printf("\n\n====================================================\n");
+        }
+    }
+    if(likehood != NULL)
+        *likehood = est;
+    printf("NEW GLOBAL EST = %f \n", est);
     copy_hmm_model(model_i, &model);
     free_hmm_model(&model);
 }

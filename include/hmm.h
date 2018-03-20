@@ -39,16 +39,14 @@ void free_hmm_seq(hmm_seq *seq);
  * @brief Generate params of HMM.
  *
  * @param model The pointer of model.
- * @param type  The type of generation params of HMM.
- *              @p type = {0, 1, 2}, where 0 - random, 1 - uniform, 2 - in section.
  * @param param If type != 2 param must be NULL. @p param = {num1, num2, ind}.
  *              Divide domain of a mode into #num1(P) * #num2(C) parts. Generate HMM in #ind part of domain.
  * @return      Return #Success or #Error.
  *
  */
 byte generate_hmm_model(hmm_model *model, byte type, uint32_t* param);
-#define generate_random_hmm_model(model) generate_hmm_model(model, 0)
-#define generate_uniform_hmm_model(model) generate_hmm_model(model, 1)
+#define generate_random_hmm_model(model) generate_hmm_model(model, 0, NULL)
+#define generate_uniform_hmm_model(model) generate_hmm_model(model, 1, NULL)
 
 /*
 init_set(double ***set, hmm_seq *seq, hmm_model *model);
@@ -85,7 +83,7 @@ void marginaol_probability_norm(hmm_seq *seq, hmm_model *model, double estimatio
                                 double *alhaset_v, double **betaset, double *betaset_v, double  **gammaset);
 
 void estimation_model(hmm_seq *seq, hmm_model *model, double eps, double *likehood);
-void estimation_model_gl(hmm_seq *seq, hmm_model *model, uint32_t iter, double eps); //search for global maximum of likehood.
+void estimation_model_gl(hmm_seq *seq, hmm_model *model, uint32_t iter, double eps, double *likehood); //search for global maximum of likehood.
 
 #ifdef __cplusplus
 } /* extern "C" */
