@@ -41,10 +41,3 @@ byte ch(double *arr, byte len){
     return (len - 1);
 }
 
-double standart_deviation_matrix(const double **s1, const double **s2, qword dim1, qword dim2){
-    double std_dev = 0;
-    for (qword i = 0; i < dim1; ++i)
-        for (qword j = 0; j < dim2; ++j)
-            std_dev += (s1[i][j] - s2[i][j]) * (s1[i][j] - s2[i][j]);
-    return std_dev;
-}

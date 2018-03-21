@@ -48,8 +48,7 @@ byte generate_hmm_model(hmm_model *model, byte type, uint32_t* param);
 #define generate_random_hmm_model(model) generate_hmm_model(model, 0, NULL)
 #define generate_uniform_hmm_model(model) generate_hmm_model(model, 1, NULL)
 
-/*
-init_set(double ***set, hmm_seq *seq, hmm_model *model);
+void init_set(double ***set, hmm_seq *seq, hmm_model *model);
 void init_set_v(double **set_p, hmm_seq *seq);
 void init_ksiset(double ****ksiset, hmm_seq *seq, hmm_model *model);
 void init_gammaset(double ***gammaset_p, hmm_seq *seq, hmm_model *model);
@@ -58,7 +57,6 @@ void free_set_v(double *set);
 void free_set(double **set,  hmm_seq *seq);
 void free_ksiset(double ***ksiset, hmm_seq *seq, hmm_model *model);
 void free_gammaset(double **gammaset, hmm_seq *seq);
-*/
 
 /**
  *

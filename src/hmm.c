@@ -578,55 +578,53 @@ void marginal_probability(hmm_seq *seq, hmm_model *model, double estimation_seq,
  * Need to repair pointer.
  * Try to add search of global maximum.
  */
-void estimation_model(hmm_seq *seq, hmm_model *model_i, double eps, double *likehood){
-
+void estimation_model(hmm_seq *seq, hmm_model *model_i, double eps, double *likehood) {
+    
     ///Init block
     hmm_model model;
     double est, prev_est;
     //double std_deviation = 0, prev_std_deviation = 1;
-    double ** alphaset;
-    double ** alphaset_new;
-    double ** betaset;
-    double * alphaset_v;
-    double * betaset_v;
-    double *** ksiset;
+    double **alphaset;
+    double **betaset;
+    double *alphaset_v;
+    double *betaset_v;
+    double ***ksiset;
     double **gammaset;
-
+    
     init_hmm_model(&model, model_i->N, model_i->M);
     copy_hmm_model(&model, model_i);
     //generate_random_hmm_model(&model);
     init_set(&alphaset, seq, model_i);
-    init_set(&alphaset_new, seq, model_i);
     init_set(&betaset, seq, model_i);
     init_set_v(&alphaset_v, seq);
     init_set_v(&betaset_v, seq);
     init_ksiset(&ksiset, seq, model_i);
     init_gammaset(&gammaset, seq, model_i);
     /////
-
+    
     /// First iteration
     forward_algorithm(seq, &model, alphaset, alphaset_v);
     backward_algorithm(seq, &model, betaset, betaset_v);
     prev_est = estimation_sequence_forward(seq, &model, alphaset, alphaset_v);
-    if(isnan(prev_est) || isinf(prev_est)){
-        if(likehood != NULL)
+    if (isnan(prev_est) || isinf(prev_est)) {
+        if (likehood != NULL)
             *likehood = prev_est;
         copy_hmm_model(model_i, &model);
         free_hmm_model(&model);
         return;
     }
     ///
-
+    
     while (1) {
         hmm_model new_model;
         init_hmm_model(&new_model, model.N, model.M);
-
+        
         marginal_probability(seq, &model, prev_est, alphaset, alphaset_v, betaset, betaset_v, gammaset);
         double_probability(seq, &model, prev_est, alphaset, alphaset_v, betaset, betaset_v, ksiset);
-
+        
         for (byte i = 0; i < model.N; ++i)
             new_model.Pi[i] = gammaset[0][i];
-
+        
         for (byte i = 0; i < model.N; ++i)
             for (byte j = 0; j < model.N; ++j) {
                 double sum1, sum2 = sum1 = 0;
@@ -635,10 +633,10 @@ void estimation_model(hmm_seq *seq, hmm_model *model_i, double eps, double *like
                     sum2 += gammaset[t][i];
                 }
                 new_model.P[i][j] = sum1 / sum2;
-                if(isnan(new_model.P[i][j]))
+                if (isnan(new_model.P[i][j]))
                     new_model.P[i][j] = 0;
             }
-
+        
         for (byte i = 0; i < model.N; ++i)
             for (byte j = 0; j < seq->m; ++j) {
                 double sum1, sum2 = sum1 = 0;
@@ -648,36 +646,35 @@ void estimation_model(hmm_seq *seq, hmm_model *model_i, double eps, double *like
                     sum2 += gammaset[t][i];
                 }
                 new_model.C[i][j] = sum1 / sum2;
-                if(isnan(new_model.C[i][j]))
+                if (isnan(new_model.C[i][j]))
                     new_model.C[i][j] = 0;
             }
-
+        
         /// Calculate likehood for new_model
         forward_algorithm(seq, &new_model, alphaset, alphaset_v);
         backward_algorithm(seq, &new_model, betaset, betaset_v);
         est = estimation_sequence_forward(seq, &new_model, alphaset, alphaset_v);
         ///
-
+        
         // std_deviation += standart_deviation_matrix(model.P, new_model.P, model.N, model.N);
         // std_deviation += standart_deviation_matrix(model.C, new_model.C, model.N, model.M);
-
+        
         copy_hmm_model(&model, &new_model);
         free_hmm_model(&new_model);
-
+        
         if (est < prev_est)
             fprintf(stderr, "%s. Likehood of prev. iter.(%f) < Likehood of new iter.(%f).\n",
                     "Warning! Algorithm EM doesn't work properly!", prev_est, est);
         
-        if(isnan(prev_est) || isnan(est))
-        {
+        if (isnan(prev_est) || isnan(est)) {
             printf("dfsdf");
         }
         if (fabs(prev_est - est) <= eps)
             break;
-
+        
         prev_est = est;
     }
-    if(likehood != NULL)
+    if (likehood != NULL)
         *likehood = est;
     copy_hmm_model(model_i, &model);
     

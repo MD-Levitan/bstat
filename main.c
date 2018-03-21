@@ -1,6 +1,7 @@
 #include <stdio.h>
 #include <time.h>
 #include "hmm.h"
+#include "statistic.h"
 
 int main() {
     srand(time(NULL));
@@ -90,6 +91,13 @@ int main() {
         printf("\n\t");
     }
     printf("estimation = %f", est);
+    
+    printf("\n=========\n");
+    double stat = 0;
+    statistic_likelihood(&seq, &model1, NULL, 0.005, &stat);
+    printf("Likelihood(std) = %f\n", stat);
+    statistic_likelihood(&seq, &model2, NULL, 0.005, &stat);
+    printf("Likelihood(global) = %f\n", stat);
 
     free_hmm_seq(&seq);
     free_hmm_model(&model);
