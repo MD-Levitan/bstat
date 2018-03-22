@@ -52,45 +52,45 @@ byte statistic_chi_square(int N, double *n, double** estimation_P, double** pred
  * :param prediction_hmm: params of hidden markov model(predictable).
  * :param threshold: threshold probability — the significance level.
  */
-byte statistic_likelihood(hmm_seq *seq, hmm_model *estimation_hmm, hmm_model *prediction_hmm,
-                          double threshold, double *stat){
-    if(seq == NULL || estimation_hmm == NULL || stat == NULL){
-        return ERROR;
-    }
-    
-    byte need_free = 0;
-    if(prediction_hmm == NULL){
-        need_free = 1;
-        hmm_model model;
-        init_hmm_model(&model, estimation_hmm->N, estimation_hmm->M);
-        generate_uniform_hmm_model(&model);
-        prediction_hmm = &model;
-    }
-    double ** alphaset;
-    double * alphaset_v;
-    double est_likehood, pred_likehood;
-    
-    init_set(&alphaset, seq, estimation_hmm);
-    init_set_v(&alphaset_v, seq);
-    
-    forward_algorithm(seq, estimation_hmm, alphaset, alphaset_v);
-    est_likehood = estimation_sequence_forward(seq, estimation_hmm, alphaset, alphaset_v);
-    
-    forward_algorithm(seq, prediction_hmm, alphaset, alphaset_v);
-    pred_likehood = estimation_sequence_forward(seq, prediction_hmm, alphaset, alphaset_v);
-    
-    free_set(alphaset, seq);
-    free_set_v(alphaset_v);
-    
-//    est_likehood = !est_likehood ? 0 : log2(est_likehood);
-//    pred_likehood = !pred_likehood ? 0 : log2(pred_likehood);
-    *stat = -2 * (pred_likehood - est_likehood);
-    
-    if(need_free)
-        prediction_hmm = NULL;
-
-//from scipy.stats import chi2
-//        level = chi2.isf(threshold, sequence.N * (sequence.N - 1) + sequence.N * (sequence.M - 1))
+//byte statistic_likelihood(hmm_seq *seq, hmm_model *estimation_hmm, hmm_model *prediction_hmm,
+//                          double threshold, double *stat){
+//    if(seq == NULL || estimation_hmm == NULL || stat == NULL){
+//        return ERROR;
+//    }
 //
-
-}
+//    byte need_free = 0;
+//    if(prediction_hmm == NULL){
+//        need_free = 1;
+//        hmm_model model;
+//        init_hmm_model(&model, estimation_hmm->N, estimation_hmm->M);
+//        generate_uniform_hmm_model(&model);
+//        prediction_hmm = &model;
+//    }
+//    double ** alphaset;
+//    double * alphaset_v;
+//    double est_likehood, pred_likehood;
+//
+//    init_set(&alphaset, seq, estimation_hmm);
+//    init_set_v(&alphaset_v, seq);
+//
+//    forward_algorithm(seq, estimation_hmm, alphaset, alphaset_v);
+//    est_likehood = estimation_sequence_forward(seq, estimation_hmm, alphaset, alphaset_v);
+//
+//    forward_algorithm(seq, prediction_hmm, alphaset, alphaset_v);
+//    pred_likehood = estimation_sequence_forward(seq, prediction_hmm, alphaset, alphaset_v);
+//
+//    free_set(alphaset, seq);
+//    free_set_v(alphaset_v);
+//
+////    est_likehood = !est_likehood ? 0 : log2(est_likehood);
+////    pred_likehood = !pred_likehood ? 0 : log2(pred_likehood);
+//    *stat = -2 * (pred_likehood - est_likehood);
+//
+//    if(need_free)
+//        prediction_hmm = NULL;
+//
+////from scipy.stats import chi2
+////        level = chi2.isf(threshold, sequence.N * (sequence.N - 1) + sequence.N * (sequence.M - 1))
+////
+//
+//}

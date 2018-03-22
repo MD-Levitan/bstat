@@ -10,7 +10,7 @@ extern "C"{
 
 
 /**
- * @brief Params of DCMM(Hidden Markov Model).
+ * @brief Params of DCMM(Double Chain Markov Model).
  *
  *
  */
@@ -19,7 +19,7 @@ typedef struct dcmm_s{
     byte M;             /**< Size of the set  of visible states. */
     double *Pi;         /**< Initial vector of hidden states. */
     double **P;         /**< One-step transition matrix of hidden states. */
-    double ***C;         /**< Transition matrix from hidden to visible states. */
+    double ***C;         /**<A set of transition matrix from hidden and visible states to new visible state. */
 } dcmm_model;
 
 
@@ -40,15 +40,6 @@ byte generate_dcmm_model(dcmm_model *model, byte type, uint32_t* param);
 #define generate_random_dcmm_model(model) generate_dcmm_model(model, 0, NULL)
 #define generate_uniform_dcmm_model(model) generate_dcmm_model(model, 1, NULL)
 
-void init_set(double ***set, sequence *seq, dcmm_model *model);
-void init_set_v(double **set_p, sequence *seq);
-void init_ksiset(double ****ksiset, sequence *seq, dcmm_model *model);
-void init_gammaset(double ***gammaset_p, sequence *seq, dcmm_model *model);
-
-void free_set_v(double *set);
-void free_set(double **set,  sequence *seq);
-void free_ksiset(double ***ksiset, sequence *seq, dcmm_model *model);
-void free_gammaset(double **gammaset, sequence *seq);
 
 /**
  *
@@ -63,16 +54,16 @@ byte generate_dcmm_sequence(sequence *seq, dcmm_model *model);
 
 
 
-byte forward_algorithm(sequence *seq, dcmm_model *model, double **set, double *set_v);
-byte backward_algorithm(sequence *seq, dcmm_model *model, double **set, double *set_v);
-double estimation_sequence_forward(sequence *seq, dcmm_model *model, double **set, double *set_v);
-void double_probability_norm(sequence *seq, dcmm_model *model, double estimation_seq, double **alphaset,
+byte forward_algorithm_d(sequence *seq, dcmm_model *model, double **set, double *set_v);
+byte backward_algorithm_d(sequence *seq, dcmm_model *model, double **set, double *set_v);
+double estimation_sequence_forward_d(sequence *seq, dcmm_model *model, double **set, double *set_v);
+void double_probability_norm_d(sequence *seq, dcmm_model *model, double estimation_seq, double **alphaset,
                              double *alhaset_v, double **betaset, double *betaset_v, double  ***ksiset);
-void marginaol_probability_norm(sequence *seq, dcmm_model *model, double estimation_seq, double **alphaset,
+void marginaol_probability_norm_d(sequence *seq, dcmm_model *model, double estimation_seq, double **alphaset,
                                 double *alhaset_v, double **betaset, double *betaset_v, double  **gammaset);
 
-void estimation_model(sequence *seq, dcmm_model *model, double eps, double *likehood);
-void estimation_model_gl(sequence *seq, dcmm_model *model, uint32_t iter, double eps, double *likehood); //search for global maximum of likehood.
+void estimation_model_d(sequence *seq, dcmm_model *model, double eps, double *likehood);
+void estimation_model_gl_d(sequence *seq, dcmm_model *model, uint32_t iter, double eps, double *likehood); //search for global maximum of likehood.
 
 #ifdef __cplusplus
 } /* extern "C" */

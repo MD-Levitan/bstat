@@ -1,6 +1,15 @@
-#include <hmm.h>
 #include <libnet.h>
 #include "hmm.h"
+
+void init_set(double ***set, sequence *seq, hmm_model *model);
+void init_set_v(double **set_p, sequence *seq);
+void init_ksiset(double ****ksiset, sequence *seq, hmm_model *model);
+void init_gammaset(double ***gammaset_p, sequence *seq, hmm_model *model);
+
+void free_set_v(double *set);
+void free_set(double **set,  sequence *seq);
+void free_ksiset(double ***ksiset, sequence *seq, hmm_model *model);
+void free_gammaset(double **gammaset, sequence *seq);
 
 void init_hmm_model(hmm_model *ctx, byte n, byte m){
     if(!ctx)
@@ -612,7 +621,7 @@ void estimation_model(sequence *seq, hmm_model *model_i, double eps, double *lik
         for (byte i = 0; i < model.N; ++i)
             for (byte j = 0; j < seq->m; ++j) {
                 double sum1, sum2 = sum1 = 0;
-                for (qword t = 0; t < seq->T - 1; ++t) {
+                for (qword t = 0; t < seq->T; ++t) { ///!!!!!check
                     if (seq->array[t] == j)
                         sum1 += gammaset[t][i];
                     sum2 += gammaset[t][i];
