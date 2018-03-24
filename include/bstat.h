@@ -4,6 +4,11 @@
 #include <stdint.h>
 #include <assert.h>
 #include <stdio.h>
+
+#ifdef __linux__
+    #include <sys/sysinfo.h>
+#endif //__linux__
+
 //#include <math.h>
 
 #include <stdlib.h>
@@ -22,6 +27,7 @@ extern "C"{
 #define __memcheck(src, num, size) do { if (((src) = calloc(num, size)) == NULL) assert(!CRASH_ERROR); } while(0)
 
 
+
 typedef unsigned char byte;
 typedef uint16_t      word;
 typedef uint32_t      dword;
@@ -36,6 +42,11 @@ typedef struct sequence_s{
 
 void free_sequence(sequence *ctx);
 void init_sequence(sequence *ctx, qword t);
+void checkRAM(sequence *ctx);
+
+typedef struct stream_s{
+
+} stream;
 
 
 extern byte    (*_entropy)(void);

@@ -720,7 +720,6 @@ void estimation_model_gl(sequence *seq, hmm_model *model_i, uint32_t iter, doubl
     }
     if(likehood != NULL)
         *likehood = est;
-    printf("NEW GLOBAL EST = %f \n", est);
     copy_hmm_model(model_i, &model);
     free_hmm_model(&model);
 }

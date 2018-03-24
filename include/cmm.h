@@ -40,6 +40,8 @@ byte generate_cmm_sequence(sequence *seq, cmm_model *model);
 byte generate_random_sequence(sequence *seq, byte m);
 
 
+
+byte MLE_algorithm_stream(stream *str, cmm_model *model, double *n);
 byte MLE_algorithm(sequence *seq, cmm_model *model, double *n);
 byte bootstrap(sequence *seq, cmm_model *model, word repeats, double *n);
 byte smoothed_estimators(sequence *seq, cmm_model *model, word repeats, double u, double *n);

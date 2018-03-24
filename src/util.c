@@ -41,3 +41,12 @@ byte ch(double *arr, byte len){
     return (len - 1);
 }
 
+void checkRAM(sequence *ctx){
+    if(ctx == NULL)
+        assert(!"memory error");
+    struct sysinfo info;
+    int rv =sysinfo(&info);
+    if(ctx == NULL || (ctx->T * 8) > info.freeram)
+        assert(!"memory error");
+}
+

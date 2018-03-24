@@ -648,7 +648,7 @@ void estimation_model_d(sequence *seq, dcmm_model *model_i, double eps, double *
                             sum2 += gammaset[t][k];
                     }
                     new_model.C[k][i][j] = sum1 / sum2;
-                    if (isnan(new_model.C[i][j]))
+                    if (isnan(new_model.C[k][i][j]))
                         new_model.C[i][j] = 0;
                 }
             }
