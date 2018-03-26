@@ -1,14 +1,12 @@
 #include "dcmm.h"
 
-void init_set(double ***set, sequence *seq, dcmm_model *model);
-void init_set_v(double **set_p, sequence *seq);
-void init_ksiset(double ****ksiset, sequence *seq, dcmm_model *model);
-void init_gammaset(double ***gammaset_p, sequence *seq, dcmm_model *model);
-
-void free_set_v(double *set);
-void free_set(double **set,  sequence *seq);
-void free_ksiset(double ***ksiset, sequence *seq, dcmm_model *model);
-void free_gammaset(double **gammaset, sequence *seq);
+//void init_set(double ***set, sequence *seq, dcmm_model *model);
+//void init_ksiset(double ****ksiset, sequence *seq, dcmm_model *model);
+//void init_gammaset(double ***gammaset_p, sequence *seq, dcmm_model *model);
+//
+//void free_set(double **set,  sequence *seq);
+//void free_ksiset(double ***ksiset, sequence *seq, dcmm_model *model);
+//void free_gammaset(double **gammaset, sequence *seq);
 
 
 void init_dcmm_model(dcmm_model *ctx, byte n, byte m){
@@ -232,28 +230,6 @@ byte generate_dcmm_model(dcmm_model *model,  uint8_t type, uint32_t* param){
     return SUCCESS;
 }
 
-byte generate_dcmm_sequence(sequence *seq,  dcmm_model *model) {
-    if(_entropy == NULL || seq == NULL || model == NULL)
-        return ERROR;
-    /*
-     * Need to correct!!!!
-     */
-    double *pi_C;
-    _memcheck(pi_C, model->M * sizeof(double));
-    for (byte i = 0; i < model->M; ++i) {
-        pi_C[i] = (double) 1 / model->M;
-    }
-    
-    byte hidden = ch(model->Pi, model->N);
-    byte visible = ch(pi_C, model->M);
-    free(pi_C);
-    
-    for (qword i = 0; i < seq->T; ++i) {
-        seq->array[i] = visible;
-        hidden = ch(model->P[hidden], model->N);
-        visible = ch(model->C[hidden][visible], model->M);
-    }
-}
 
 
 //////////////////////////////////////////////////////////////////////
@@ -265,88 +241,74 @@ byte generate_dcmm_sequence(sequence *seq,  dcmm_model *model) {
  * set_v = {alphaset_v, betaset_v};
  */
 
-void init_set(double ***set_p, sequence *seq, dcmm_model *model){
-    if(!seq || !model)
-        return;
-    double **set;
-    _memcheck(set, seq->T * sizeof(double*));
-    for (qword t = 0; t < seq->T; ++t) {
-        _memcheck(set[t], model->N * sizeof(double));
-    }
-    *set_p = set;
-}
-
-void free_set(double **set,  sequence *seq) {
-    if (!set || !seq)
-        return;
-    
-    for (qword t = 0; t < seq->T; ++t) {
-        free(set[t]);
-    }
-    free(set);
-}
-
-void init_set_v(double **set_p, sequence *seq) {
-    if (!seq)
-        return;
-    double *set;
-    _memcheck(set, seq->T * sizeof(double));
-    *set_p = set;
-}
-
-void free_set_v(double *set){
-    if(!set)
-        return;
-    free(set);
-}
-
-void init_ksiset(double ****ksiset_p, sequence *seq, dcmm_model *model){
-    if(!seq || !model)
-        return;
-    double ***ksiset;
-    _memcheck(ksiset, (seq->T - 1) * sizeof(double**));
-    for(qword i = 0; i < seq->T - 1; ++i) {
-        _memcheck(ksiset[i], model->N * sizeof(double *));
-        for(byte k = 0; k < model->N; ++k){
-            _memcheck(ksiset[i][k], model->N * sizeof(double));
-            //    memset(ksiset[i][k], 0, sizeof(double) * model->N);//not good solution
-        }
-    }
-    *ksiset_p = ksiset;
-}
-
-void free_ksiset(double ***ksiset, sequence *seq, dcmm_model *model) {
-    if(!ksiset || !seq || !model)
-        return;
-    
-    for(qword i = 0; i < seq->T - 1; ++i) {
-        for(byte k = 0; k < model->N; ++k){
-            free(ksiset[i][k]);
-        }
-        free(ksiset[i]);
-    }
-    free(ksiset);
-}
-
-void init_gammaset(double ***gammaset_p, sequence *seq, dcmm_model *model) {
-    if(!seq || !model)
-        return;
-    double **gammaset;
-    _memcheck(gammaset, seq->T * sizeof(double *));
-    for (qword i = 0; i < seq->T; ++i) {
-        _memcheck(gammaset[i], model->N * sizeof(double));
-        //memset(gammaset[i], 0, sizeof(double) * model->N);//not good solution
-    }
-    *gammaset_p = gammaset;
-}
-
-void free_gammaset(double **gammaset, sequence *seq){
-    if(!gammaset || !seq)
-        return;
-    for (qword i = 0; i < seq->T; ++i)
-        free(gammaset[i]);
-    free(gammaset);
-}
+//void init_set(double ***set_p, sequence *seq, dcmm_model *model){
+//    if(!seq || !model)
+//        return;
+//    double **set;
+//    _memcheck(set, seq->T * sizeof(double*));
+//    for (qword t = 0; t < seq->T; ++t) {
+//        _memcheck(set[t], model->N * sizeof(double));
+//    }
+//    *set_p = set;
+//}
+//
+//void free_set(double **set,  sequence *seq) {
+//    if (!set || !seq)
+//        return;
+//
+//    for (qword t = 0; t < seq->T; ++t) {
+//        free(set[t]);
+//    }
+//    free(set);
+//}
+//
+//void init_ksiset(double ****ksiset_p, sequence *seq, dcmm_model *model){
+//    if(!seq || !model)
+//        return;
+//    double ***ksiset;
+//    _memcheck(ksiset, (seq->T - 1) * sizeof(double**));
+//    for(qword i = 0; i < seq->T - 1; ++i) {
+//        _memcheck(ksiset[i], model->N * sizeof(double *));
+//        for(byte k = 0; k < model->N; ++k){
+//            _memcheck(ksiset[i][k], model->N * sizeof(double));
+//            //    memset(ksiset[i][k], 0, sizeof(double) * model->N);//not good solution
+//        }
+//    }
+//    *ksiset_p = ksiset;
+//}
+//
+//void free_ksiset(double ***ksiset, sequence *seq, dcmm_model *model) {
+//    if(!ksiset || !seq || !model)
+//        return;
+//
+//    for(qword i = 0; i < seq->T - 1; ++i) {
+//        for(byte k = 0; k < model->N; ++k){
+//            free(ksiset[i][k]);
+//        }
+//        free(ksiset[i]);
+//    }
+//    free(ksiset);
+//}
+//
+//void init_gammaset(double ***gammaset_p, sequence *seq, dcmm_model *model) {
+//    if(!seq || !model)
+//        return;
+//    double **gammaset;
+//    _memcheck(gammaset, seq->T * sizeof(double *));
+//    for (qword i = 0; i < seq->T; ++i) {
+//        _memcheck(gammaset[i], model->N * sizeof(double));
+//        //memset(gammaset[i], 0, sizeof(double) * model->N);//not good solution
+//    }
+//    *gammaset_p = gammaset;
+//}
+//
+//void free_gammaset(double **gammaset, sequence *seq){
+//    if(!gammaset || !seq)
+//        return;
+//    for (qword i = 0; i < seq->T; ++i)
+//        free(gammaset[i]);
+//    free(gammaset);
+//}
 //////////////////////////////////////////////////////////////////////
 //////////////////////////////////////////////////////////////////////
 //byte forward_algorithm_(sequence *seq, dcmm_model *model, double **set) {

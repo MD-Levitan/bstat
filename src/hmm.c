@@ -1,15 +1,7 @@
 #include <libnet.h>
 #include "hmm.h"
 
-void init_set(double ***set, sequence *seq, hmm_model *model);
-void init_set_v(double **set_p, sequence *seq);
-void init_ksiset(double ****ksiset, sequence *seq, hmm_model *model);
-void init_gammaset(double ***gammaset_p, sequence *seq, hmm_model *model);
 
-void free_set_v(double *set);
-void free_set(double **set,  sequence *seq);
-void free_ksiset(double ***ksiset, sequence *seq, hmm_model *model);
-void free_gammaset(double **gammaset, sequence *seq);
 
 void init_hmm_model(hmm_model *ctx, byte n, byte m){
     if(!ctx)
@@ -245,13 +237,13 @@ byte generate_hmm_sequence(sequence *seq,  hmm_model *model) {
  * set_v = {alphaset_v, betaset_v};
  */
 
-void init_set(double ***set_p, sequence *seq, hmm_model *model){
+void init_set(double ***set_p, sequence *seq, void *model){
     if(!seq || !model)
         return;
     double **set;
     _memcheck(set, seq->T * sizeof(double*));
     for (qword t = 0; t < seq->T; ++t) {
-        _memcheck(set[t], model->N * sizeof(double));
+        _memcheck(set[t], ((hmm_model *)model)->N * sizeof(double));
     }
     *set_p = set;
 }
@@ -280,27 +272,27 @@ void free_set_v(double *set){
     free(set);
 }
 
-void init_ksiset(double ****ksiset_p, sequence *seq, hmm_model *model){
+void init_ksiset(double ****ksiset_p, sequence *seq, void *model){
     if(!seq || !model)
         return;
     double ***ksiset;
     _memcheck(ksiset, (seq->T - 1) * sizeof(double**));
     for(qword i = 0; i < seq->T - 1; ++i) {
-        _memcheck(ksiset[i], model->N * sizeof(double *));
-        for(byte k = 0; k < model->N; ++k){
-            _memcheck(ksiset[i][k], model->N * sizeof(double));
+        _memcheck(ksiset[i], ((hmm_model *)model)->N * sizeof(double *));
+        for(byte k = 0; k < ((hmm_model *)model)->N; ++k){
+            _memcheck(ksiset[i][k], ((hmm_model *)model)->N * sizeof(double));
         //    memset(ksiset[i][k], 0, sizeof(double) * model->N);//not good solution
         }
     }
     *ksiset_p = ksiset;
 }
 
-void free_ksiset(double ***ksiset, sequence *seq, hmm_model *model) {
+void free_ksiset(double ***ksiset, sequence *seq, void *model) {
     if(!ksiset || !seq || !model)
         return;
 
     for(qword i = 0; i < seq->T - 1; ++i) {
-        for(byte k = 0; k < model->N; ++k){
+        for(byte k = 0; k < ((hmm_model *)model)->N; ++k){
             free(ksiset[i][k]);
         }
         free(ksiset[i]);
@@ -308,13 +300,13 @@ void free_ksiset(double ***ksiset, sequence *seq, hmm_model *model) {
     free(ksiset);
 }
 
-void init_gammaset(double ***gammaset_p, sequence *seq, hmm_model *model) {
+void init_gammaset(double ***gammaset_p, sequence *seq, void *model) {
     if(!seq || !model)
         return;
     double **gammaset;
     _memcheck(gammaset, seq->T * sizeof(double *));
     for (qword i = 0; i < seq->T; ++i) {
-        _memcheck(gammaset[i], model->N * sizeof(double));
+        _memcheck(gammaset[i], ((hmm_model *)model)->N * sizeof(double));
         //memset(gammaset[i], 0, sizeof(double) * model->N);//not good solution
     }
     *gammaset_p = gammaset;

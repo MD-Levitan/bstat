@@ -49,8 +49,16 @@ byte generate_hmm_model(hmm_model *model, byte type, uint32_t* param);
  * @param type
  * @return
  */
-byte generate_hmm_sequence(sequence *seq, hmm_model *model);
 
+void init_set(double ***set, sequence *seq, void *model);
+void init_set_v(double **set_p, sequence *seq);
+void init_ksiset(double ****ksiset, sequence *seq, void *model);
+void init_gammaset(double ***gammaset_p, sequence *seq, void *model);
+
+void free_set_v(double *set);
+void free_set(double **set,  sequence *seq);
+void free_ksiset(double ***ksiset, sequence *seq, void *model);
+void free_gammaset(double **gammaset, sequence *seq);
 
 
 byte forward_algorithm(sequence *seq, hmm_model *model, double **set, double *set_v);

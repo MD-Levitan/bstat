@@ -2,7 +2,7 @@
 #define __BSTAT_DCMM_H
 
 #include "bstat.h"
-#include "statistic.h"
+#include "hmm.h"
 
 #ifdef __cplusplus
 extern "C"{
