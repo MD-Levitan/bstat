@@ -1,4 +1,5 @@
 #include <stdio.h>
+#include "bstat.h"
 #include <time.h>
 #include "cmm.h"
 
@@ -22,32 +23,33 @@ int main() {
     generate_random_cmm_model(&model);
     generate_random_cmm_model(&model1);
 
-    init_sequence(&seq, 100000);
+    //init_sequence(&seq, 100000);
+    read_file_2_sequence(&seq, "sampledata-1MB.bin", 2);
     //generate_random_hmm_seq(&seq, 2);
-    generate_cmm_sequence(&seq, &model);
+    //generate_cmm_sequence(&seq, &model);
 
-    printf("Sequence: ");
-    for (int j = 0; j < seq.T; ++j) {
-        printf("%d ", seq.array[j]);
-    }
-    printf("\n");
-
-    printf("Estimated model:");
-    printf("\n");
-    printf("Pi:  ");
-    for (int j = 0; j < model.N; ++j) {
-        printf("%lf ", model.Pi[j]);
-    }
-    printf("\n");
-
-    printf("P:  ");
-    for (byte i = 0; i < model.N; ++i) {
-        for (int j = 0; j < model.N; ++j) {
-            printf("%lf ", model.P[i][j]);
-        }
-        printf("\n\t");
-    }
-    printf("\n");
+//    printf("Sequence: ");
+//    for (int j = 0; j < seq.T; ++j) {
+//        printf("%d ", seq.array[j]);
+//    }
+//    printf("\n");
+//
+//    printf("Estimated model:");
+//    printf("\n");
+//    printf("Pi:  ");
+//    for (int j = 0; j < model.N; ++j) {
+//        printf("%lf ", model.Pi[j]);
+//    }
+//    printf("\n");
+//
+//    printf("P:  ");
+//    for (byte i = 0; i < model.N; ++i) {
+//        for (int j = 0; j < model.N; ++j) {
+//            printf("%lf ", model.P[i][j]);
+//        }
+//        printf("\n\t");
+//    }
+//    printf("\n");
 
 
 //    double est = 0;

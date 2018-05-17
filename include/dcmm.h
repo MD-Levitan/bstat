@@ -59,7 +59,7 @@ byte backward_algorithm_d(sequence *seq, dcmm_model *model, double **set, double
 double estimation_sequence_forward_d(sequence *seq, dcmm_model *model, double **set, double *set_v);
 void double_probability_norm_d(sequence *seq, dcmm_model *model, double estimation_seq, double **alphaset,
                              double *alhaset_v, double **betaset, double *betaset_v, double  ***ksiset);
-void marginaol_probability_norm_d(sequence *seq, dcmm_model *model, double estimation_seq, double **alphaset,
+void marginal_probability_norm_d(sequence *seq, dcmm_model *model, double estimation_seq, double **alphaset,
                                 double *alhaset_v, double **betaset, double *betaset_v, double  **gammaset);
 
 void estimation_model_d(sequence *seq, dcmm_model *model, double eps, double *likehood);

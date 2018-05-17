@@ -36,15 +36,26 @@ byte generate_cmm_model(cmm_model *model, byte type);
 #define generate_random_cmm_model(model) generate_cmm_model(model, 0)
 #define generate_uniform_cmm_model(model) generate_cmm_model(model, 1)
 
+/**
+ * Generation of sequence.
+ * 1. Using CMM model.
+ * 2. Using rand(), with parameter m.
+ */
 byte generate_cmm_sequence(sequence *seq, cmm_model *model);
 byte generate_random_sequence(sequence *seq, byte m);
 
-
-
-byte MLE_algorithm_stream(stream *str, cmm_model *model, double *n);
+/**
+ * Algorithms of estimation.
+ * Type: 1. MLE; 2. Bootstrap; 3. Smoothed alg.
+ * Type of data: 1. sequence; 2. stream;
+ */
 byte MLE_algorithm(sequence *seq, cmm_model *model, double *n);
 byte bootstrap(sequence *seq, cmm_model *model, word repeats, double *n);
 byte smoothed_estimators(sequence *seq, cmm_model *model, word repeats, double u, double *n);
+
+byte MLE_algorithm_stream(stream *str, cmm_model *model, double *n);
+byte bootstrap_stream(stream *str, cmm_model *model, word repeats, double *n);
+byte smoothed_estimators_stream(stream *str, cmm_model *model, word repeats, double u, double *n);
 
 
 #ifdef __cplusplus

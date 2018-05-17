@@ -91,7 +91,7 @@ int main() {
     printf("\n");
 
     generate_random_cmms_model(&model1);
-    smoothed_estimators_s(&seq, &model1, 100, 0.005, NULL);
+    smoothed_estimators_s(&seq, &model1, 100, 0.5, NULL);
     printf("========SMOOTHED========\n");
     printf("\n");
     printf("Pi:  ");

@@ -19,14 +19,6 @@ void init_cmms_model(cmms_model *ctx, byte n, byte s){
         _memcheck(ctx->P[i], ctx->N * sizeof(double));
 }
 
-void init_cmms_sequence(sequence *ctx, qword t){
-    if(!ctx)
-        return;
-
-    ctx->T = t;
-    _memcheck(ctx->array, ctx->T * sizeof(byte));
-}
-
 void copy_cmms_model(cmms_model *dist, cmms_model *src){
     if(!dist || !src || dist->N != src->N || dist->S != src->S)
         return;
@@ -56,29 +48,29 @@ void free_cmms_model(cmms_model *ctx){
     ctx->S = 0;
 }
 
-/////////////////////////////////////////////////
-
+/////////////////// GENERATOR ///////////////////
 
 byte generate_cmms_sequence(sequence *seq, cmms_model *model){
     if(_entropy == NULL || seq == NULL || model == NULL || seq->T <= model->S)
         return ERROR;
 
     seq->m = model->N;
-
+    
+    
     qword current_word = 0;
     byte visible;
-    qword num_bit = ((qword) -1) ^ (1 << (model->S - 1));
+    qword num_bit = pow(model->N, model->S - 1);
     for (qword i = 0; i < model->S; ++i) { //*check
         visible = ch(model->Pi, model->N);
-        current_word <<= 1;
+        current_word *= model->N;
         current_word += visible;
         seq->array[i] = visible;
     }
     for (qword i = model->S; i < seq->T; ++i) {
         visible = ch(model->P[current_word], model->N);
         seq->array[i] = visible;
-        current_word &= num_bit;
-        current_word <<= 1;
+        current_word %= num_bit;
+        current_word *= model->N;
         current_word += visible;
     }
 }
@@ -128,17 +120,17 @@ byte generate_cmms_model(cmms_model *model, byte type){
     return SUCCESS;
 }
 
+/////////////////    ALGORITHMS   ///////////////
+
 byte MLE_algorithm_s(sequence *seq, cmms_model *model, double *_n) {
     if (!model || !seq || (seq->m && seq->m != model->N) || seq->T <= model->S)
         return ERROR;
-
     //calculate Pi
     double value = 1.0 / model->N;
     for (byte i = 0; i < model->N; ++i) {
         model->Pi[i] = value;
     }
-
-    qword num_bit = ((qword) -1) ^ (1 << (model->S - 1));
+    qword num_bit = pow(model->N, model->S - 1);
     qword ns = pow(model->N, model->S);
     qword *n;
     _memcheck(n, ns * sizeof(qword));
@@ -151,36 +143,18 @@ byte MLE_algorithm_s(sequence *seq, cmms_model *model, double *_n) {
             model->P[i][j] = 0;
         }
     }
-
-
-    //calculate P
-    //Complexity = O(N*N*(T-1))
-//    for (byte i = 0; i < model->N; ++i) {
-//        for (byte j = 0; j < model->N; ++j) {
-//            value = 0;
-//            for (qword t = 0; t < seq->T - 1; ++t) {
-//                if((seq->array[t] == i) && (seq->array[t + 1] == j))
-//                    value++;
-//            }
-//            model->P[i][j] = n[i] ? value / n[i] : 1.0 / model->N;
-//        }
-//    }
-
-    //calculate n_i and P
-    //Complexity = O(2*N*N) + 0(T-1)
-
-
+    
     qword current_word = 0;
     for (qword t = 0; t < model->S - 1; ++t) {
         if(seq->array[t] < model->N){
-            current_word <<= 1;
+            current_word *= model->N;
             current_word += seq->array[t];
         }else{
             return ERROR;
         }
     }
     for (qword t = model->S - 1; t < seq->T - 1; ++t) {
-        current_word <<= 1;
+        current_word *= model->N;
         current_word += seq->array[t];
         if(seq->array[t] < model->N){
             n[current_word]++;
@@ -188,7 +162,7 @@ byte MLE_algorithm_s(sequence *seq, cmms_model *model, double *_n) {
         }else{
             return ERROR;
         }
-        current_word &= num_bit;
+        current_word %= num_bit;
     }
 
 
@@ -202,6 +176,7 @@ byte MLE_algorithm_s(sequence *seq, cmms_model *model, double *_n) {
             _n[i] = (double) n[i];
         }
     }
+    
     free(n);
     return SUCCESS;
 }
@@ -210,24 +185,27 @@ byte bootstrap_s(sequence *seq, cmms_model *model, word repeats, double *_n){
     if (!model || !seq || (seq->m && seq->m != model->N))
         return ERROR;
     cmms_model iter_model;
+    cmms_model start_model;
     sequence iter_seq;
     cmms_model average_model;
     init_cmms_model(&iter_model, model->N, model->S);
     init_cmms_model(&average_model, model->N, model->S);
+    init_cmms_model(&start_model, model->N, model->S);
     double *n, *n_average;
     qword ns = pow(model->N, model->S);
     _memcheck(n, ns * sizeof(double));
     _memcheck(n_average, ns * sizeof(double));
 
 
-    _check(MLE_algorithm_s(seq, &iter_model, n));
+    _check(MLE_algorithm_s(seq, &start_model, n));
     memcpy(n_average, n, model->N * sizeof(double));
-    copy_cmms_model(&average_model, &iter_model);
-    init_cmms_sequence(&iter_seq, seq->T);
+    copy_cmms_model(&average_model, &start_model);
+    init_sequence(&iter_seq, seq->T);
     for (word it = 1; it < repeats; ++it) {
-        generate_cmms_sequence(&iter_seq, &iter_model);
+        generate_cmms_sequence(&iter_seq, &start_model);
         _check(MLE_algorithm_s(&iter_seq, &iter_model, n));
-        for(byte i = 0; i < model->N; ++i){
+        
+        for(byte i = 0; i < ns; ++i){
             n_average[i] += n[i];
         }
         for(byte i = 0; i < ns; ++i){
@@ -241,11 +219,70 @@ byte bootstrap_s(sequence *seq, cmms_model *model, word repeats, double *_n){
             average_model.P[i][j] /= repeats;
         }
     }
-    for(byte i = 0; i < model->N; ++i){
+    for(byte i = 0; i < ns; ++i){
+        n_average[i] /= repeats;
+    }
+    printf("\n");
+    if(_n)
+        memcpy(_n, n_average, ns * sizeof(double));
+    free(n);
+    free(n_average);
+    copy_cmms_model(model, &average_model);
+    free_cmms_model(&average_model);
+    free_cmms_model(&iter_model);
+    free_cmms_model(&start_model);
+    free_sequence(&iter_seq);
+    return SUCCESS;
+}
+
+byte smoothed_estimators_s(sequence *seq, cmms_model *model, word repeats, double u, double *_n) {
+    if (!model || !seq || (seq->m && seq->m != model->N))
+        return ERROR;
+    cmms_model iter_model;
+    cmms_model start_model;
+    sequence iter_seq;
+    cmms_model average_model;
+    init_cmms_model(&iter_model, model->N, model->S);
+    init_cmms_model(&average_model, model->N, model->S);
+    init_cmms_model(&start_model, model->N, model->S);
+    double gamma = pow(seq->T,-u);
+    double omega = 1 + gamma * model->N;
+    double *n, *n_average;
+    qword ns = pow(model->N, model->S);
+    _memcheck(n, ns * sizeof(double));
+    _memcheck(n_average, ns * sizeof(double));
+
+
+    _check(MLE_algorithm_s(seq, &start_model, n));
+    copy_cmms_model(&average_model, &start_model);
+    for(byte i = 0; i < ns; ++i){
+        for(byte j = 0; j < model->N; ++j){
+            start_model.P[i][j] = (start_model.P[i][j] + gamma) / omega;
+        }
+    }
+    init_sequence(&iter_seq, seq->T);
+    for (word it = 1; it < repeats; ++it) {
+        generate_cmms_sequence(&iter_seq, &start_model);
+        _check(MLE_algorithm_s(&iter_seq, &iter_model, n));
+        for(byte i = 0; i < ns; ++i){
+            n_average[i] += n[i];
+        }
+        for(byte i = 0; i < ns; ++i){
+            for(byte j = 0; j < model->N; ++j){
+                average_model.P[i][j] += iter_model.P[i][j];
+            }
+        }
+    }
+    for(byte i = 0; i < ns; ++i){
+        for(byte j = 0; j < model->N; ++j){
+            average_model.P[i][j] /= repeats;
+        }
+    }
+    for(byte i = 0; i < ns; ++i){
         n_average[i] /= repeats;
     }
     if(_n)
-        memcpy(_n, n, model->N * sizeof(double));
+        memcpy(_n, n, ns * sizeof(double));
     free(n);
     free(n_average);
     copy_cmms_model(model, &average_model);
@@ -255,34 +292,95 @@ byte bootstrap_s(sequence *seq, cmms_model *model, word repeats, double *_n){
     return SUCCESS;
 }
 
-byte smoothed_estimators_s(sequence *seq, cmms_model *model, word repeats, double u, double *_n) {
-    if (!model || !seq || (seq->m && seq->m != model->N))
+byte MLE_algorithm_s_stream(stream *str, cmms_model *model, double *_n){
+    if (!model || !is_open(str) || (str->m && str->m != model->N) || get_size(str) <= model->S)
+        return ERROR;
+    //calculate Pi
+    double value = 1.0 / model->N;
+    for (byte i = 0; i < model->N; ++i) {
+        model->Pi[i] = value;
+    }
+    qword num_bit = pow(model->N, model->S - 1);
+    qword ns = pow(model->N, model->S);
+    qword *n;
+    _memcheck(n, ns * sizeof(qword));
+    for (byte i = 0; i < ns; ++i) {
+        n[i] = 0;
+    }
+    
+    for (byte i = 0; i < ns; ++i) {
+        for (byte j = 0; j < model->N; ++j) {
+            model->P[i][j] = 0;
+        }
+    }
+    
+    qword current_word = 0;
+    byte next, var = 0;
+    for (qword t = 0; t < model->S - 1; ++t) {
+        var = get(str);
+        if(var < model->N){
+            current_word *= model->N;
+            current_word += var;
+        }else{
+            return ERROR;
+        }
+    }
+    var = get(str);
+    while (!is_end(str)){
+        next = get(str);
+        current_word *= model->N;
+        current_word += var;
+        if(var < model->N){
+            n[current_word]++;
+            model->P[current_word][next]++;
+        }else{
+            return ERROR;
+        }
+        current_word %= num_bit;
+        var = next;
+    }
+    
+    
+    for (byte i = 0; i < ns; ++i) {
+        for (byte j = 0; j < model->N; ++j) {
+            model->P[i][j] = n[i] ? model->P[i][j] / n[i] : 1.0 / model->N;
+        }
+    }
+    if(_n != NULL) {
+        for (byte i = 0; i < ns; ++i) {
+            _n[i] = (double) n[i];
+        }
+    }
+    
+    free(n);
+    return SUCCESS;
+}
+
+byte bootstrap_s_stream(stream *str, cmms_model *model, word repeats, double *_n){
+    if (!model || !is_open(str) || (str->m && str->m != model->N))
         return ERROR;
     cmms_model iter_model;
+    cmms_model start_model;
     sequence iter_seq;
     cmms_model average_model;
     init_cmms_model(&iter_model, model->N, model->S);
     init_cmms_model(&average_model, model->N, model->S);
-    double gamma = pow(seq->T,-u);
-    double omega = 1 + gamma * model->N;
+    init_cmms_model(&start_model, model->N, model->S);
     double *n, *n_average;
     qword ns = pow(model->N, model->S);
     _memcheck(n, ns * sizeof(double));
     _memcheck(n_average, ns * sizeof(double));
-
-
-    _check(MLE_algorithm_s(seq, &iter_model, n));
-    copy_cmms_model(&average_model, &iter_model);
-    for(byte i = 0; i < ns; ++i){
-        for(byte j = 0; j < model->N; ++j){
-            iter_model.P[i][j] = (iter_model.P[i][j] + gamma) / omega;
-        }
-    }
-    init_sequence(&iter_seq, seq->T);
+    
+    
+    _check(MLE_algorithm_s_stream(str, &start_model, n));
+    memcpy(n_average, n, model->N * sizeof(double));
+    copy_cmms_model(&average_model, &start_model);
+    init_sequence(&iter_seq, get_size(str)); //CHECK MEMORY
     for (word it = 1; it < repeats; ++it) {
-        generate_cmms_sequence(&iter_seq, &iter_model);
+        generate_cmms_sequence(&iter_seq, &start_model);
         _check(MLE_algorithm_s(&iter_seq, &iter_model, n));
-        for(byte i = 0; i < model->N; ++i){
+        
+        for(byte i = 0; i < ns; ++i){
             n_average[i] += n[i];
         }
         for(byte i = 0; i < ns; ++i){
@@ -296,11 +394,70 @@ byte smoothed_estimators_s(sequence *seq, cmms_model *model, word repeats, doubl
             average_model.P[i][j] /= repeats;
         }
     }
-    for(byte i = 0; i < model->N; ++i){
+    for(byte i = 0; i < ns; ++i){
+        n_average[i] /= repeats;
+    }
+    printf("\n");
+    if(_n)
+        memcpy(_n, n_average, ns * sizeof(double));
+    free(n);
+    free(n_average);
+    copy_cmms_model(model, &average_model);
+    free_cmms_model(&average_model);
+    free_cmms_model(&iter_model);
+    free_cmms_model(&start_model);
+    free_sequence(&iter_seq);
+    return SUCCESS;
+}
+
+byte smoothed_estimators_s_stream(stream *str, cmms_model *model, word repeats, double u, double *_n){
+    if (!model || !is_open(str) || (str->m && str->m != model->N))
+        return ERROR;
+    cmms_model iter_model;
+    cmms_model start_model;
+    sequence iter_seq;
+    cmms_model average_model;
+    init_cmms_model(&iter_model, model->N, model->S);
+    init_cmms_model(&average_model, model->N, model->S);
+    init_cmms_model(&start_model, model->N, model->S);
+    double gamma = pow(get_size(str),-u);
+    double omega = 1 + gamma * model->N;
+    double *n, *n_average;
+    qword ns = pow(model->N, model->S);
+    _memcheck(n, ns * sizeof(double));
+    _memcheck(n_average, ns * sizeof(double));
+    
+    
+    _check(MLE_algorithm_s_stream(str, &start_model, n));
+    copy_cmms_model(&average_model, &start_model);
+    for(byte i = 0; i < ns; ++i){
+        for(byte j = 0; j < model->N; ++j){
+            start_model.P[i][j] = (start_model.P[i][j] + gamma) / omega;
+        }
+    }
+    init_sequence(&iter_seq, get_size(str));//CHECK MEMORY
+    for (word it = 1; it < repeats; ++it) {
+        generate_cmms_sequence(&iter_seq, &start_model);
+        _check(MLE_algorithm_s(&iter_seq, &iter_model, n));
+        for(byte i = 0; i < ns; ++i){
+            n_average[i] += n[i];
+        }
+        for(byte i = 0; i < ns; ++i){
+            for(byte j = 0; j < model->N; ++j){
+                average_model.P[i][j] += iter_model.P[i][j];
+            }
+        }
+    }
+    for(byte i = 0; i < ns; ++i){
+        for(byte j = 0; j < model->N; ++j){
+            average_model.P[i][j] /= repeats;
+        }
+    }
+    for(byte i = 0; i < ns; ++i){
         n_average[i] /= repeats;
     }
     if(_n)
-        memcpy(_n, n, model->N * sizeof(double));
+        memcpy(_n, n, ns * sizeof(double));
     free(n);
     free(n_average);
     copy_cmms_model(model, &average_model);

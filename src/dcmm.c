@@ -478,7 +478,7 @@ double estimation_sequence_forward_d(sequence *seq, dcmm_model *model, double **
     return est;
 }
 
-double estimation_sequence_forward_(sequence *seq, dcmm_model *model, double **set){
+double estimation_sequence_forward_d_(sequence *seq, dcmm_model *model, double **set){
     double est = 0;
     for (byte i = 0; i < model->N; ++i) {
         est += set[seq->T - 1][i];
@@ -486,7 +486,7 @@ double estimation_sequence_forward_(sequence *seq, dcmm_model *model, double **s
     return est;
 }
 
-double estimation_sequence_forward_backward(sequence *seq, double *set_v, double **set){
+double estimation_sequence_forward_backward_d(sequence *seq, double *set_v, double **set){
     /*double est = 0;
     for (byte i = 0; i < seq->m; ++i) {
         est += set[seq->T - 1][i];
@@ -498,7 +498,7 @@ double estimation_sequence_forward_backward(sequence *seq, double *set_v, double
     return est;*/
 }
 
-void double_probability(sequence *seq, dcmm_model *model, double estimation_seq, double **alphaset, double *alhaset_v,
+void double_probability_d(sequence *seq, dcmm_model *model, double estimation_seq, double **alphaset, double *alhaset_v,
                         double **betaset, double *betaset_v, double  ***ksiset) {
     
     for (qword t = 0; t < seq->T - 1; ++t) {
@@ -519,7 +519,7 @@ void double_probability(sequence *seq, dcmm_model *model, double estimation_seq,
     }
 }
 
-void marginal_probability(sequence *seq, dcmm_model *model, double estimation_seq, double **alphaset, double *alhaset_v,
+void marginal_probability_d(sequence *seq, dcmm_model *model, double estimation_seq, double **alphaset, double *alhaset_v,
                           double **betaset, double *betaset_v, double **gammaset){
     for(qword t = 0; t < seq->T - 1; ++t) {
         for(byte i = 0; i < model->N; ++i) {
@@ -565,9 +565,9 @@ void estimation_model_d(sequence *seq, dcmm_model *model_i, double eps, double *
     /////
     
     /// First iteration
-    forward_algorithm(seq, &model, alphaset, alphaset_v);
-    backward_algorithm(seq, &model, betaset, betaset_v);
-    prev_est = estimation_sequence_forward(seq, &model, alphaset, alphaset_v);
+    forward_algorithm_d(seq, &model, alphaset, alphaset_v);
+    backward_algorithm_d(seq, &model, betaset, betaset_v);
+    prev_est = estimation_sequence_forward_d(seq, &model, alphaset, alphaset_v);
     if (isnan(prev_est) || isinf(prev_est)) {
         if (likehood != NULL)
             *likehood = prev_est;
@@ -581,8 +581,8 @@ void estimation_model_d(sequence *seq, dcmm_model *model_i, double eps, double *
         dcmm_model new_model;
         init_dcmm_model(&new_model, model.N, model.M);
         
-        marginal_probability(seq, &model, prev_est, alphaset, alphaset_v, betaset, betaset_v, gammaset);
-        double_probability(seq, &model, prev_est, alphaset, alphaset_v, betaset, betaset_v, ksiset);
+        marginal_probability_d(seq, &model, prev_est, alphaset, alphaset_v, betaset, betaset_v, gammaset);
+        double_probability_d(seq, &model, prev_est, alphaset, alphaset_v, betaset, betaset_v, ksiset);
         
         for (byte i = 0; i < model.N; ++i)
             new_model.Pi[i] = gammaset[0][i];
@@ -616,9 +616,9 @@ void estimation_model_d(sequence *seq, dcmm_model *model_i, double eps, double *
             }
         }
         /// Calculate likehood for new_model
-        forward_algorithm(seq, &new_model, alphaset, alphaset_v);
-        backward_algorithm(seq, &new_model, betaset, betaset_v);
-        est = estimation_sequence_forward(seq, &new_model, alphaset, alphaset_v);
+        forward_algorithm_d(seq, &new_model, alphaset, alphaset_v);
+        backward_algorithm_d(seq, &new_model, betaset, betaset_v);
+        est = estimation_sequence_forward_d(seq, &new_model, alphaset, alphaset_v);
         ///
         
         // std_deviation += standart_deviation_matrix(model.P, new_model.P, model.N, model.N);

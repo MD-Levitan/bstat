@@ -1,5 +1,6 @@
 #include <stdio.h>
 #include <time.h>
+#include <tests.h>
 #include "dcmm.h"
 
 //////////////////////////////////////////////////////////////////////
@@ -8,10 +9,13 @@
 
 
 int main() {
-    srand(time(NULL));
-    _entropy = rand;
+//    srand(time(NULL));
+//    _entropy = rand;
 
     printf("//////////////////////////////////////////////////////////////////////\n");
     printf("///////////       TESTS OF DCMM AND STATISTIC OF DCMM      ///////////\n");
     printf("//////////////////////////////////////////////////////////////////////\n");
+    init();
+    double *res = statistic_cmm(2, 2, 0);
+    printf("%f -- %f", res[0], res[1]);
 }

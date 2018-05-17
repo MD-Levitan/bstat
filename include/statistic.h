@@ -1,7 +1,6 @@
 #ifndef __BSTAT_STATISTIC_H
 #define __BSTAT_STATISTIC_H
 
-
 #include "hmm.h"
 #include "cmm.h"
 #include "cmms.h"
@@ -21,7 +20,6 @@ byte statistic_chi_square_cmm(byte N, double *n, cmm_model *estimation_cmm, cmm_
 
 byte statistic_chi_square_cmms(byte N, byte S, double *n, cmms_model *estimation_cmms, cmms_model *prediction_cmms,
                                double threshold, double *stat);
-
 
 byte statistic_likelihood_hmm(sequence *seq,  hmm_model *estimation_hmm, hmm_model *prediction_hmm,
                           double threshold, double *stat);
