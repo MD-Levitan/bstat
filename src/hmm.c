@@ -40,6 +40,27 @@ void copy_hmm_model(hmm_model *dist, hmm_model *src){
     }
 }
 
+void set_hmm_model(hmm_model *dist, double *Pi, double** P, double** C){
+    if(!P || !C || !Pi || !dist)
+        return;
+
+    for (int j = 0; j < dist->N; ++j) {
+        dist->Pi[j] = Pi[j];
+    }
+
+    for (byte i = 0; i < dist->N; ++i) {
+        for (int j = 0; j < dist->N; ++j) {
+            dist->P[i][j] = P[i][j];
+        }
+    }
+
+    for (byte i = 0; i < dist->N; ++i) {
+        for (int j = 0; j < dist->M; ++j) {
+            dist->C[i][j] = C[i][j];
+        }
+    }
+}
+
 
 void free_hmm_model(hmm_model *ctx){
     if(!ctx)

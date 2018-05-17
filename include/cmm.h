@@ -21,6 +21,7 @@ typedef struct cmm_s{
 
 void init_cmm_model(cmm_model *ctx, byte n);
 void copy_cmm_model(cmm_model *dist, cmm_model *src);
+void set_cmm_model(cmm_model *dist, double *Pi, double **P);
 void free_cmm_model(cmm_model *ctx);
 
 /**
@@ -53,9 +54,9 @@ byte MLE_algorithm(sequence *seq, cmm_model *model, double *n);
 byte bootstrap(sequence *seq, cmm_model *model, word repeats, double *n);
 byte smoothed_estimators(sequence *seq, cmm_model *model, word repeats, double u, double *n);
 
-byte MLE_algorithm_stream(stream *str, cmm_model *model, double *n);
-byte bootstrap_stream(stream *str, cmm_model *model, word repeats, double *n);
-byte smoothed_estimators_stream(stream *str, cmm_model *model, word repeats, double u, double *n);
+byte MLE_algorithm_stream(istream *str, cmm_model *model, double *n);
+byte bootstrap_stream(istream *str, cmm_model *model, word repeats, double *n);
+byte smoothed_estimators_stream(istream *str, cmm_model *model, word repeats, double u, double *n);
 
 
 #ifdef __cplusplus

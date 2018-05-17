@@ -25,7 +25,9 @@ typedef struct hmm_s{
 
 void init_hmm_model(hmm_model *ctx, byte n, byte m);
 void copy_hmm_model(hmm_model *dist, hmm_model *src);
+void set_hmm_model(hmm_model *dist, double *Pi, double** P, double** C);
 void free_hmm_model(hmm_model *model);
+//void load_hmm_model()
 
 /**
  * @brief Generate params of HMM.
@@ -39,6 +41,8 @@ void free_hmm_model(hmm_model *model);
 byte generate_hmm_model(hmm_model *model, byte type, uint32_t* param);
 #define generate_random_hmm_model(model) generate_hmm_model(model, 0, NULL)
 #define generate_uniform_hmm_model(model) generate_hmm_model(model, 1, NULL)
+
+byte generate_hmm_sequence(sequence *seq, hmm_model *model);
 
 /**
  *

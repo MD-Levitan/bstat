@@ -32,6 +32,22 @@ void copy_cmm_model(cmm_model *dist, cmm_model *src){
     }
 }
 
+void set_cmm_model(cmm_model *dist, double *Pi, double **P){
+    if(!P || !Pi || !dist)
+        return;
+
+    for (int j = 0; j < dist->N; ++j) {
+        dist->Pi[j] = Pi[j];
+    }
+
+    for (byte i = 0; i < dist->N; ++i) {
+        for (int j = 0; j < dist->N; ++j) {
+            dist->P[i][j] = P[i][j];
+        }
+    }
+}
+
+
 void free_cmm_model(cmm_model *ctx){
     if(!ctx)
         return;
@@ -271,8 +287,8 @@ byte smoothed_estimators(sequence *seq, cmm_model *model, word repeats, double u
 }
 
 //stream
-byte MLE_algorithm_stream(stream *str, cmm_model *model, double *_n){
-    if (!model || is_open(str) ||(str->m && str->m != model->N))
+byte MLE_algorithm_stream(istream *str, cmm_model *model, double *_n){
+    if (!model || iopened(str) ||(str->m && str->m != model->N))
         return ERROR;
     
     //calculate Pi
@@ -293,11 +309,11 @@ byte MLE_algorithm_stream(stream *str, cmm_model *model, double *_n){
         }
     }
     
-    if (is_end(str))
+    if (iend(str))
         return ERROR;
-    byte next, curr = get(str);
-    while (!is_end(str)) {
-        next = get(str);
+    byte next, curr = iget(str);
+    while (!iend(str)) {
+        next = iget(str);
         n[curr]++;
         model->P[curr][next]++;
         curr = next;
@@ -316,8 +332,8 @@ byte MLE_algorithm_stream(stream *str, cmm_model *model, double *_n){
     return SUCCESS;
 }
 
-byte bootstrap_stream(stream *str, cmm_model *model, word repeats, double *_n){
-    if (!model || is_open(str) || (str->m && str->m != model->N))
+byte bootstrap_stream(istream *str, cmm_model *model, word repeats, double *_n){
+    if (!model || iopened(str) || (str->m && str->m != model->N))
         return ERROR;
     cmm_model iter_model;
     sequence iter_seq;
@@ -332,7 +348,7 @@ byte bootstrap_stream(stream *str, cmm_model *model, word repeats, double *_n){
     _check(MLE_algorithm_stream(str, &iter_model, n));
     memcpy(n_average, n, model->N * sizeof(double));
     copy_cmm_model(&average_model, &iter_model);
-    init_sequence(&iter_seq, get_size(str)); //CHECK MEMORY
+    init_sequence(&iter_seq, isize(str)); //CHECK MEMORY
     for (word it = 1; it < repeats; ++it) {
         generate_cmm_sequence(&iter_seq, &iter_model);
         _check(MLE_algorithm(&iter_seq, &iter_model, n));
@@ -365,15 +381,15 @@ byte bootstrap_stream(stream *str, cmm_model *model, word repeats, double *_n){
     return SUCCESS;
 }
 
-byte smoothed_estimators_stream(stream *str, cmm_model *model, word repeats, double u, double *_n){
-    if (!model || !is_open(str) || (str->m && str->m != model->N))
+byte smoothed_estimators_stream(istream *str, cmm_model *model, word repeats, double u, double *_n){
+    if (!model || !iopened(str) || (str->m && str->m != model->N))
         return ERROR;
     cmm_model iter_model;
     sequence iter_seq;
     cmm_model average_model;
     init_cmm_model(&iter_model, model->N);
     init_cmm_model(&average_model, model->N);
-    double gamma = pow(get_size(str),-u);
+    double gamma = pow(isize(str),-u);
     double omega = 1 + gamma * model->N;
     double *n, *n_average;
     _memcheck(n, model->N * sizeof(double));
@@ -387,7 +403,7 @@ byte smoothed_estimators_stream(stream *str, cmm_model *model, word repeats, dou
             iter_model.P[i][j] = (iter_model.P[i][j] + gamma) / omega;
         }
     }
-    init_sequence(&iter_seq, get_size(str)); //CHECK MEMORY
+    init_sequence(&iter_seq, isize(str)); //CHECK MEMORY
     for (word it = 1; it < repeats; ++it) {
         generate_cmm_sequence(&iter_seq, &iter_model);
         _check(MLE_algorithm(&iter_seq, &iter_model, n));

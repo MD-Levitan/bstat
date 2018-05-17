@@ -34,6 +34,22 @@ void copy_cmms_model(cmms_model *dist, cmms_model *src){
     }
 }
 
+void set_cmms_model(cmms_model *dist, double *Pi, double **P){
+    if(!P || !Pi || !dist)
+        return;
+
+    for (int j = 0; j < dist->N; ++j) {
+        dist->Pi[j] = Pi[j];
+    }
+
+    for (byte i = 0; i < pow(dist->N, dist->S); ++i) {
+        for (int j = 0; j < dist->N; ++j) {
+            dist->P[i][j] = P[i][j];
+        }
+    }
+}
+
+
 void free_cmms_model(cmms_model *ctx){
     if(!ctx)
         return;
@@ -292,8 +308,8 @@ byte smoothed_estimators_s(sequence *seq, cmms_model *model, word repeats, doubl
     return SUCCESS;
 }
 
-byte MLE_algorithm_s_stream(stream *str, cmms_model *model, double *_n){
-    if (!model || !is_open(str) || (str->m && str->m != model->N) || get_size(str) <= model->S)
+byte MLE_algorithm_s_stream(istream *str, cmms_model *model, double *_n){
+    if (!model || !iopened(str) || (str->m && str->m != model->N) || isize(str) <= model->S)
         return ERROR;
     //calculate Pi
     double value = 1.0 / model->N;
@@ -317,7 +333,7 @@ byte MLE_algorithm_s_stream(stream *str, cmms_model *model, double *_n){
     qword current_word = 0;
     byte next, var = 0;
     for (qword t = 0; t < model->S - 1; ++t) {
-        var = get(str);
+        var = iget(str);
         if(var < model->N){
             current_word *= model->N;
             current_word += var;
@@ -325,9 +341,9 @@ byte MLE_algorithm_s_stream(stream *str, cmms_model *model, double *_n){
             return ERROR;
         }
     }
-    var = get(str);
-    while (!is_end(str)){
-        next = get(str);
+    var = iget(str);
+    while (!iend(str)){
+        next = iget(str);
         current_word *= model->N;
         current_word += var;
         if(var < model->N){
@@ -356,8 +372,8 @@ byte MLE_algorithm_s_stream(stream *str, cmms_model *model, double *_n){
     return SUCCESS;
 }
 
-byte bootstrap_s_stream(stream *str, cmms_model *model, word repeats, double *_n){
-    if (!model || !is_open(str) || (str->m && str->m != model->N))
+byte bootstrap_s_stream(istream *str, cmms_model *model, word repeats, double *_n){
+    if (!model || !iopened(str) || (str->m && str->m != model->N))
         return ERROR;
     cmms_model iter_model;
     cmms_model start_model;
@@ -375,7 +391,7 @@ byte bootstrap_s_stream(stream *str, cmms_model *model, word repeats, double *_n
     _check(MLE_algorithm_s_stream(str, &start_model, n));
     memcpy(n_average, n, model->N * sizeof(double));
     copy_cmms_model(&average_model, &start_model);
-    init_sequence(&iter_seq, get_size(str)); //CHECK MEMORY
+    init_sequence(&iter_seq, isize(str)); //CHECK MEMORY
     for (word it = 1; it < repeats; ++it) {
         generate_cmms_sequence(&iter_seq, &start_model);
         _check(MLE_algorithm_s(&iter_seq, &iter_model, n));
@@ -410,8 +426,8 @@ byte bootstrap_s_stream(stream *str, cmms_model *model, word repeats, double *_n
     return SUCCESS;
 }
 
-byte smoothed_estimators_s_stream(stream *str, cmms_model *model, word repeats, double u, double *_n){
-    if (!model || !is_open(str) || (str->m && str->m != model->N))
+byte smoothed_estimators_s_stream(istream *str, cmms_model *model, word repeats, double u, double *_n){
+    if (!model || !iopened(str) || (str->m && str->m != model->N))
         return ERROR;
     cmms_model iter_model;
     cmms_model start_model;
@@ -420,7 +436,7 @@ byte smoothed_estimators_s_stream(stream *str, cmms_model *model, word repeats, 
     init_cmms_model(&iter_model, model->N, model->S);
     init_cmms_model(&average_model, model->N, model->S);
     init_cmms_model(&start_model, model->N, model->S);
-    double gamma = pow(get_size(str),-u);
+    double gamma = pow(isize(str),-u);
     double omega = 1 + gamma * model->N;
     double *n, *n_average;
     qword ns = pow(model->N, model->S);
@@ -435,7 +451,7 @@ byte smoothed_estimators_s_stream(stream *str, cmms_model *model, word repeats, 
             start_model.P[i][j] = (start_model.P[i][j] + gamma) / omega;
         }
     }
-    init_sequence(&iter_seq, get_size(str));//CHECK MEMORY
+    init_sequence(&iter_seq, isize(str));//CHECK MEMORY
     for (word it = 1; it < repeats; ++it) {
         generate_cmms_sequence(&iter_seq, &start_model);
         _check(MLE_algorithm_s(&iter_seq, &iter_model, n));

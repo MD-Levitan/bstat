@@ -1,3 +1,4 @@
+#include <time.h>
 #include "bstat.h"
 #include "statistic.h"
 
@@ -28,6 +29,8 @@ void entropy_m(byte *src, qword len, byte mod){
         src[i] = _entropy() % mod;
 }
 
+
+
 byte ch(double *arr, byte len){
     assert(_entropy != NULL);
 
@@ -50,3 +53,7 @@ void checkRAM(sequence *ctx){
         assert(!"memory error");
 }
 
+void init(){
+    srand(time(NULL));
+    _entropy = rand;
+}

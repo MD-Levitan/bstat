@@ -1,5 +1,5 @@
 #include "bstat.h"
-byte f_open(stream *ctx, const char* filename, byte m){
+byte iopen(istream *ctx, const char* filename, byte m){
     if (!ctx) {
         return ERROR;
     }
@@ -7,6 +7,7 @@ byte f_open(stream *ctx, const char* filename, byte m){
         perror("Error in size param");
         return ERROR;
     }
+    ctx->buffer_size = 0;
     ctx->m = m;
     ctx->bits = (byte)log2(ctx->m);
     ctx->file = fopen(filename, "r");
@@ -14,21 +15,23 @@ byte f_open(stream *ctx, const char* filename, byte m){
         perror("File opening failed");
         return ERROR;
     }
+    return SUCCESS;
+
 }
 
-void f_close(stream *ctx){
+void iclose(istream *ctx){
     if(!ctx || !ctx->file)
         return;
     fclose(ctx->file);
 }
 
-byte is_open(stream *ctx){
+byte iopened(istream *ctx){
     if(ctx && ctx->file)
         return SUCCESS;
     return ERROR;
 }
 
-byte is_end(stream *ctx){
+byte iend(istream *ctx){
     if(ctx->buffer_size < ctx->bits) {
         byte rv = 0;
         byte _buffer = ctx->buffer;
@@ -42,7 +45,7 @@ byte is_end(stream *ctx){
     return 0;
 }
 
-byte get(stream *ctx) {
+byte iget(istream *ctx) {
     if (ctx->buffer_size < ctx->bits) {
         byte rv = 0;
         byte _buffer = ctx->buffer;
@@ -57,11 +60,81 @@ byte get(stream *ctx) {
     return res;
 }
 
-qword get_size(stream *ctx){
-    if(!is_open(ctx))
+qword isize(istream *ctx){
+    if(!iopened(ctx))
         return 0;
     fseek(ctx->file, 0L, SEEK_END);
     qword size = ftell(ctx->file);
     fseek(ctx->file, 0L, SEEK_SET);
     return size * (1 << 8 / ctx->m);
 }
+
+
+byte oopen(ostream *ctx, const char* filename, byte isASCII){
+    if (!ctx) {
+        return ERROR;
+    }
+    ctx->buffer_size = 0;
+    ctx->isASCII = isASCII;
+    ctx->file = fopen(filename, "w");
+    if(ctx->file) {
+        perror("File opening failed");
+        return ERROR;
+    }
+    return SUCCESS;
+}
+
+byte osetm(ostream *ctx, byte m){
+    if (!ctx) {
+        return ERROR;
+    }
+    if (m % 2){
+        perror("Error in size param");
+        return ERROR;
+    }
+    ctx->m = m;
+    ctx->bits = (byte)log2(ctx->m);
+    return SUCCESS;
+}
+
+void  oclose(ostream *ctx){
+    if(!ctx || !ctx->file)
+        return;
+    if(ctx->buffer_size != 0){
+        byte buff = ctx->buffer & 0xFF;
+        ctx->buffer_size = 0;
+        fwrite(&buff, 1, 1, ctx->file);
+    }
+    fclose(ctx->file);
+}
+
+byte  oopened(ostream *ctx){
+    if(ctx && ctx->file)
+        return SUCCESS;
+    return ERROR;
+}
+
+void oput_ASCII(ostream *ctx, byte in){
+    byte rv = (byte) fwrite(&in, 1, 1, ctx->file);
+    return; //rv;
+}
+
+void oput_binary(ostream *ctx, byte in){
+    ctx->buffer <<= ctx->bits;
+    ctx->buffer += in;
+    ctx->buffer_size += ctx->m;
+
+    if(ctx->buffer_size >= 8) {
+        byte rv;
+        byte res = ctx->buffer & 0xFF;
+        ctx->buffer >>= 8;
+        ctx->buffer_size -= 8;
+        rv = (byte) fwrite(&res, 1, 1, ctx->file);
+    }
+    return; //res;
+}
+
+void oput(ostream *ctx, byte in){
+    return ctx->isASCII ? oput_ASCII(ctx, in) : oput_binary(ctx, in);
+}
+

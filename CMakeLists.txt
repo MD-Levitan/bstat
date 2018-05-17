@@ -1,4 +1,4 @@
-cmake_minimum_required(VERSION 3.9)
+cmake_minimum_required(VERSION 3.8)
 project(bstat C)
 
 option(BUILD_SHARED_LIBS "Build shared libraries." ON)
@@ -19,8 +19,11 @@ set(${CMAKE__OUTPUT_DIRECTORY} ${dir})
 
 include_directories(include/)
 include_directories(src/)
+include_directories(generation/)
 
 add_subdirectory(src)
+add_subdirectory(generation)
+
 
 add_library(bstat STATIC
         $<TARGET_OBJECTS:bstat_src>)

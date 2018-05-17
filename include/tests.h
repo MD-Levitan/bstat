@@ -9,10 +9,6 @@
 #include "time.h"
 
 
-void init(){
-    srand(time(NULL));
-    _entropy = rand;
-}
 
 double *statistic_cmms(byte N, byte S, qword len, byte alg);
 double *statistic_cmm(byte N, qword len, byte alg);

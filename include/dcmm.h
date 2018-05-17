@@ -25,6 +25,7 @@ typedef struct dcmm_s{
 
 void init_dcmm_model(dcmm_model *ctx, byte n, byte m);
 void copy_dcmm_model(dcmm_model *dist, dcmm_model *src);
+void set_dcmm_model(dcmm_model *dist, double *Pi, double** P, double*** C);
 void free_dcmm_model(dcmm_model *model);
 
 /**

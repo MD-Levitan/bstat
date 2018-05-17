@@ -51,6 +51,29 @@ void copy_dcmm_model(dcmm_model *dist, dcmm_model *src){
     }
 }
 
+void set_dcmm_model(dcmm_model *dist, double *Pi, double** P, double*** C){
+    if(!P || !C || !Pi || !dist)
+        return;
+
+    for (int j = 0; j < dist->N; ++j) {
+        dist->Pi[j] = Pi[j];
+    }
+
+    for (byte i = 0; i < dist->N; ++i) {
+        for (int j = 0; j < dist->N; ++j) {
+            dist->P[i][j] = P[i][j];
+        }
+    }
+
+    for (byte k = 0; k < dist->N; ++k) {
+        for (byte i = 0; i < dist->M; ++i) {
+            for (int j = 0; j < dist->M; ++j) {
+                dist->C[k][i][j] = C[k][i][j];
+            }
+        }
+    }
+}
+
 
 void free_dcmm_model(dcmm_model *ctx){
     if(!ctx)
@@ -230,6 +253,24 @@ byte generate_dcmm_model(dcmm_model *model,  uint8_t type, uint32_t* param){
     return SUCCESS;
 }
 
+byte generate_dcmm_sequence(sequence *seq,  dcmm_model *model) {
+    if(_entropy == NULL || seq == NULL || model == NULL)
+        return ERROR;
+
+    double hidden_start[model->M];
+    double var = 1.0 / model->M;
+    for(byte i = 0; i < model->M; ++i){
+        hidden_start[i] = var;
+    }
+    byte hidden = ch(model->Pi, model->N);
+    byte visible = ch(hidden_start, model->M);
+    visible = ch(model->C[hidden][visible], model->M);
+    for (qword i = 0; i < seq->T; ++i) {
+        seq->array[i] = visible;
+        hidden = ch(model->P[hidden], model->N);
+        visible = ch(model->C[hidden][visible], model->M);
+    }
+}
 
 
 //////////////////////////////////////////////////////////////////////

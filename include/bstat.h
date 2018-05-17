@@ -44,26 +44,45 @@ void free_sequence(sequence *ctx);
 void init_sequence(sequence *ctx, qword t);
 void checkRAM(sequence *ctx);
 
-typedef struct stream_s{
+typedef struct istream_s{
     FILE *file;
     byte m;
     word buffer;
     byte buffer_size;
     byte bits;
-} stream;
+} istream;
 
-byte    f_open(stream *ctx, const char* filename, byte m);
-void    f_close(stream *ctx);
-byte    is_open(stream *ctx);
-byte    is_end(stream *ctx);
-byte    get(stream *ctx);
-qword   get_size(stream *ctx);
+byte    iopen(istream *ctx, const char* filename, byte m);
+void    iclose(istream *ctx);
+byte    iopened(istream *ctx);
+byte    iend(istream *ctx);
+byte    iget(istream *ctx);
+qword   isize(istream *ctx);
+/////
+
+typedef struct ostream_s{
+    FILE *file;
+    byte m;
+    byte isASCII;
+    word buffer;
+    byte buffer_size;
+    byte bits;
+} ostream;
+
+byte    oopen(ostream *ctx, const char* filename, byte isASCII);
+byte    osetm(ostream *ctx, byte m);
+void    oclose(ostream *ctx);
+byte    oopened(ostream *ctx);
+void    oput(ostream *ctx, byte in);
+
 
 byte read_file_2_sequence(sequence *seq, const char *filename, byte m);
 
 
 extern byte    (*_entropy)(void);
 
+
+void    init();
 void    entropy_f(byte *, qword);
 qword   entropy_s(byte *, qword);
 void    entropy_m(byte *, qword, byte);
